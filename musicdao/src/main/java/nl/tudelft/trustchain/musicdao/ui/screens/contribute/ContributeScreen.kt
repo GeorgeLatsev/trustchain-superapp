@@ -12,6 +12,7 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -33,6 +34,8 @@ fun ContributeScreen(
     contributeViewModel: ContributeViewModel,
     bitcoinWalletViewModel: BitcoinWalletViewModel
 ) {
+    val isRefreshing by contributeViewModel.isRefreshing.observeAsState(false)
+    val refreshState = rememberSwipeRefreshState(isRefreshing)
     val contributions by contributeViewModel.contributions.collectAsState()
 
     fun bla() {
@@ -42,42 +45,47 @@ fun ContributeScreen(
         }
     }
 
-    Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(20.dp)
+    SwipeRefresh(
+        state = refreshState,
+        onRefresh = { contributeViewModel.refresh() }
     ) {
-        CustomMenuItem(
-            text = "Create a new Contribution",
-            onClick = {
-                navController.navigate(Screen.NewContributionRoute.route)
-            }
-        )
-
-        if (contributions.isEmpty()) {
-            EmptyState(
-                firstLine = "No contributions yet.",
-                secondLine = "Start by creating a new contribution."
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(20.dp)
+        ) {
+            CustomMenuItem(
+                text = "Create a new Contribution",
+                onClick = {
+                    navController.navigate(Screen.NewContributionRoute.route)
+                }
             )
-        } else {
-            // Make this Column take up all available vertical space
-            Column(modifier = Modifier.weight(1f)) {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(contributions.size) { index ->
-                        ContributionItem(contribution = contributions[index])
+
+            if (contributions.isEmpty()) {
+                EmptyState(
+                    firstLine = "No contributions yet.",
+                    secondLine = "Start by creating a new contribution."
+                )
+            } else {
+                // Make this Column take up all available vertical space
+                Column(modifier = Modifier.weight(1f)) {
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        items(contributions.size) { index ->
+                            ContributionItem(contribution = contributions[index])
+                        }
                     }
                 }
+
+                Spacer(modifier = Modifier.padding(8.dp))
+
+                CustomMenuItem(
+                    text = "Distribute pooled contributions",
+                    onClick = {
+                        bla()
+                    }
+                )
             }
-
-            Spacer(modifier = Modifier.padding(8.dp))
-
-            CustomMenuItem(
-                text = "Distribute pooled contributions",
-                onClick = {
-                    bla()
-                }
-            )
         }
     }
 }

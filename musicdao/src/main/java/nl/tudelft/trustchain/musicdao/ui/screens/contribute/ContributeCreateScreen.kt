@@ -57,7 +57,8 @@ fun ContributeCreateScreen(
 //                    context
 //                )
 //
-//                contributeViewModel.refreshOneShot()
+
+                contributeViewModel.refresh()
 
                 SnackbarHandler.displaySnackbar("Contribution created")
                 navController.popBackStack()
