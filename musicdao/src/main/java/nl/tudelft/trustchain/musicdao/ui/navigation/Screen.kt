@@ -50,4 +50,6 @@ sealed class Screen(val route: String) {
     object NewDaoRoute : Screen("dao/new")
 
     object CreateRelease : Screen("release/create")
+
+    object ListeningStats : Screen("listening_stats")
 }

@@ -1,8 +1,5 @@
-package nl.tudelft.trustchain.musicdao.core.ipv8
+package nl.tudelft.trustchain.musicdaodatafeeder
 
-import android.annotation.SuppressLint
-import android.util.Log
-import nl.tudelft.trustchain.musicdao.core.ipv8.modules.search.KeywordSearchMessage
 import com.frostwire.jlibtorrent.Sha1Hash
 import nl.tudelft.ipv8.Overlay
 import nl.tudelft.ipv8.Peer
@@ -10,17 +7,11 @@ import nl.tudelft.ipv8.attestation.trustchain.TrustChainBlock
 import nl.tudelft.ipv8.attestation.trustchain.TrustChainCommunity
 import nl.tudelft.ipv8.attestation.trustchain.TrustChainCrawler
 import nl.tudelft.ipv8.attestation.trustchain.TrustChainSettings
-import nl.tudelft.ipv8.attestation.trustchain.TrustChainTransaction
 import nl.tudelft.ipv8.attestation.trustchain.store.TrustChainStore
-import nl.tudelft.ipv8.keyvault.PublicKey
-import nl.tudelft.ipv8.keyvault.defaultCryptoProvider
 import nl.tudelft.ipv8.messaging.Packet
-import nl.tudelft.ipv8.util.hexToBytes
-import nl.tudelft.ipv8.util.toHex
-import nl.tudelft.trustchain.musicdao.core.ipv8.blocks.listenActivity.ListenActivityBlock
 import java.util.*
+import kotlin.random.Random
 
-@Suppress("DEPRECATION")
 class MusicCommunity(
     settings: TrustChainSettings,
     database: TrustChainStore,
@@ -54,11 +45,10 @@ class MusicCommunity(
         var count = 0
         for ((index, peer) in getPeers().withIndex()) {
             if (index >= maxPeersToAsk) break
-            val packet =
-                serializePacket(
-                    MessageId.KEYWORD_SEARCH_MESSAGE,
-                    KeywordSearchMessage(originPublicKey, ttl, keyword)
-                )
+            val packet = serializePacket(
+                MessageId.KEYWORD_SEARCH_MESSAGE,
+                KeywordSearchMessage(originPublicKey, ttl, keyword)
+            )
             send(peer, packet)
             count += 1
         }
@@ -70,16 +60,16 @@ class MusicCommunity(
      * blocks to find whether I have something. If I do, send the corresponding block directly back
      * to the original asker. If I don't, I will ask my peers to find it
      */
+    @Suppress("DEPRECATION")
     private fun onKeywordSearch(packet: Packet) {
         val (peer, payload) = packet.getAuthPayload(KeywordSearchMessage)
-        val keyword = payload.keyword.lowercase(Locale.ROOT)
+        val keyword = payload.keyword.toLowerCase(Locale.ROOT)
         val block = localKeywordSearch(keyword)
         if (block != null) sendBlock(block, peer)
         if (block == null) {
             if (!payload.checkTTL()) return
             performRemoteKeywordSearch(keyword, payload.ttl, payload.originPublicKey)
         }
-        Log.i("KeywordSearch", peer.mid + ": " + payload.keyword)
     }
 
     /**
@@ -104,12 +94,12 @@ class MusicCommunity(
      * Filter local databse to find a release block that matches a certain title or artist, using
      * keyword search
      */
-    @SuppressLint("NewApi")
+    @Suppress("DEPRECATION")
     fun localKeywordSearch(keyword: String): TrustChainBlock? {
         database.getBlocksWithType("publish_release").forEach {
             val transaction = it.transaction
-            val title = transaction["title"]?.toString()?.lowercase(Locale.ROOT)
-            val artists = transaction["artists"]?.toString()?.lowercase(Locale.ROOT)
+            val title = transaction["title"]?.toString()?.toLowerCase(Locale.ROOT)
+            val artists = transaction["artists"]?.toString()?.toLowerCase(Locale.ROOT)
             if (title != null && title.contains(keyword)) {
                 return it
             } else if (artists != null && artists.contains(keyword)) {
@@ -122,44 +112,33 @@ class MusicCommunity(
     private fun pickRandomPeer(): Peer? {
         val peers = getPeers()
         if (peers.isEmpty()) return null
-        return peers.random()
+        var index = 0
+        // Pick a random peer if we have more than 1 connected
+        if (peers.size > 1) {
+            index = Random.nextInt(peers.size - 1)
+        }
+        return peers[index]
     }
 
-    fun publicKeyHex(): String {
-        return this.myPeer.publicKey.keyToBin().toHex()
-    }
-
-    fun publicKeyStringToPublicKey(publicKey: String): PublicKey {
-        return defaultCryptoProvider.keyFromPublicBin(publicKey.hexToBytes())
-    }
-
-    fun publicKeyStringToByteArray(publicKey: String): ByteArray {
-        return publicKeyStringToPublicKey(publicKey).keyToBin()
+    /**
+     * Communicate a few release blocks to one or a few random peers
+     * @return the amount of blocks that were sent
+     */
+    fun communicateReleaseBlocks(): Int {
+        val peer = pickRandomPeer() ?: return 0
+        val releaseBlocks = database.getBlocksWithType("publish_release")
+        val maxBlocks = 3
+        var count = 0
+        releaseBlocks.shuffled().withIndex().forEach {
+            count += 1
+            if (it.index >= maxBlocks) return count
+            sendBlock(it.value, peer)
+        }
+        return count
     }
 
     object MessageId {
         const val KEYWORD_SEARCH_MESSAGE = 10
         const val SWARM_HEALTH_MESSAGE = 11
     }
-
-    fun appendListenActivityBlock(artistId: String, trackId: String, listenedMillis: Long): Boolean {
-        if (listenedMillis <= 0L) return false
-
-        val transaction = mapOf(
-            "artistId" to artistId,
-            "trackId" to trackId,
-            "listenedMillis" to listenedMillis
-        )
-
-        // self-signed block = sign it with your own public key
-        val block = createProposalBlock(
-            blockType = ListenActivityBlock.BLOCK_TYPE,
-            transaction = transaction,
-            publicKey = myPeer.publicKey.keyToBin() // self-signed
-        )
-
-        Log.i("MusicCommunity", "Appended listen_activity block: ${block.transaction}")
-        return true
-    }
-
 }
