@@ -32,7 +32,8 @@ class ContributeViewModel
     @Inject
     constructor(
         private val artistRepository: ArtistRepository,
-        private val contributionRepository: ContributionRepository
+        private val contributionRepository: ContributionRepository,
+//        val contributionPool: ContributionPool
     ) : ViewModel() {
 
     private val _isRefreshing: MutableLiveData<Boolean> = MutableLiveData()
@@ -41,7 +42,10 @@ class ContributeViewModel
     private val _contributions: MutableStateFlow<List<Contribution>> = MutableStateFlow(listOf())
     val contributions: StateFlow<List<Contribution>> = _contributions
 
-    private val contributionPool = ContributionPool
+    private val _contributionPool: MutableStateFlow<ContributionPool> = MutableStateFlow(ContributionPool(artistRepository))
+    val contributionPool: StateFlow<ContributionPool> = _contributionPool
+
+//    private val contributionPool = ContributionPool
 
     private fun getTrustChainCommunity(): TrustChainCommunity {
         return IPv8Android.getInstance().getOverlay()
@@ -60,7 +64,22 @@ class ContributeViewModel
 
     init {
         viewModelScope.launch {
-            _contributions.value = contributionRepository.getContributions()
+            val poolBlocks = musicCommunity.database.getBlocksWithType("contribution-pool")
+                .sortedByDescending { it.timestamp }
+
+            if (poolBlocks.isNotEmpty()) {
+                val latestBlock = poolBlocks.first()
+                val serializedData = latestBlock.transaction["data"] as String
+                contributionPool.value.deserialize(serializedData)
+            }
+
+            val contributionsFromRepo = contributionRepository.getContributions()
+            val flushedContributions = contributionPool.value.getFlushedContributions()
+
+            // set the _contributions value to be all contributions from the repository not contained in flushedContributions
+            _contributions.value = contributionsFromRepo.filterNot { contribution ->
+                flushedContributions.contains(contribution.id)
+            }
         }
     }
 
@@ -71,19 +90,41 @@ class ContributeViewModel
         if (artists.isNotEmpty()) {
             val share = amount / artists.size
             artists.forEach { artist ->
-                contributionPool.addContribution(artist, share)
+                contributionPool.value.addContribution(artist, share)
             }
-            val contribution = Contribution(amount, artists)
+
+            val id = UUID.randomUUID().toString()
+
+            // create a contribution object with a unique ID, amount, and artists
+            val contribution = Contribution(
+                id = id,
+                amount = amount,
+                artists = artists
+            )
+
+            contributionPool.value.addContributionObject(contribution)
+
+            val serializedPool = contributionPool.value.serialize()
+            val poolTransaction = mutableMapOf(
+                "data" to serializedPool
+            )
+
+            val myPeer = IPv8Android.getInstance().myPeer
+
+            musicCommunity.createProposalBlock("contribution-pool", poolTransaction, myPeer.publicKey.keyToBin())
+
+//            val contribution = Contribution(amount, artists)
 
             // persist the contribution to the blockchain
             val transaction = mutableMapOf(
+                "id" to id,
                 "amount" to amount,
                 "artists" to artists.map { it.publicKey }
 //                // create a string of all the artist public keys separated by @'s
 //                "artists" to artists.joinToString(separator = "@") { it.publicKey }
             )
 
-            val myPeer = IPv8Android.getInstance().myPeer
+
 
 //            trustchain.createProposalBlock(transaction, myPeer.publicKey.keyToBin(), "contribute-proposal")
 
@@ -138,8 +179,24 @@ class ContributeViewModel
             delay(500)
 
             withContext(Dispatchers.IO) {
+                val poolBlocks = musicCommunity.database.getBlocksWithType("contribution-pool")
+                    .sortedByDescending { it.timestamp }
+
+                if (poolBlocks.isNotEmpty()) {
+                    val latestBlock = poolBlocks.first()
+                    val serializedData = latestBlock.transaction["data"] as String
+                    contributionPool.value.deserialize(serializedData)
+                }
+
+
                 // TODO: Fill in the code that finds the contributions stored
-                val contributions = contributionRepository.getContributions()
+                val contributionsFromRepo = contributionRepository.getContributions()
+                val flushedContributionIds = contributionPool.value.getFlushedContributions()
+
+                // get only the entries from contributionsFromRepo whose IDs are not in flushedContributionIds
+                val contributions = contributionsFromRepo.filterNot { contribution ->
+                    flushedContributionIds.contains(contribution.id)
+                }
 
                 withContext(Dispatchers.Main) {
                     _contributions.value = contributions

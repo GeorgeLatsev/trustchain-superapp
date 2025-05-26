@@ -35,6 +35,7 @@ import com.google.accompanist.navigation.animation.composable
 import nl.tudelft.trustchain.musicdao.ui.screens.contribute.ContributeCreateScreen
 import nl.tudelft.trustchain.musicdao.ui.screens.contribute.ContributeScreen
 import nl.tudelft.trustchain.musicdao.ui.screens.contribute.ContributeViewModel
+import nl.tudelft.trustchain.musicdao.ui.screens.contribute.ContributionPool
 import nl.tudelft.trustchain.musicdao.ui.screens.dao.*
 import nl.tudelft.trustchain.musicdao.ui.screens.debug.DebugScreenViewModel
 import nl.tudelft.trustchain.musicdao.ui.screens.profile.EditProfileScreen
@@ -55,6 +56,8 @@ fun AppNavigation(
     val bitcoinWalletViewModel: BitcoinWalletViewModel = hiltViewModel()
     val daoViewModel: DaoViewModel = hiltViewModel()
     val contributeViewModel: ContributeViewModel = hiltViewModel()
+//    val contributionPool: ContributionPool = hiltViewModel<ContributeViewModel>().contributionPool
+
 
     daoViewModel.initManager()
 
@@ -131,7 +134,9 @@ fun AppNavigation(
                 ContributeScreen(
                     navController = navController,
                     contributeViewModel = contributeViewModel,
-                    bitcoinWalletViewModel = bitcoinWalletViewModel
+                    bitcoinWalletViewModel = bitcoinWalletViewModel,
+//                    contributionPool = contributionPool
+                    // error here
                 )
             }
 

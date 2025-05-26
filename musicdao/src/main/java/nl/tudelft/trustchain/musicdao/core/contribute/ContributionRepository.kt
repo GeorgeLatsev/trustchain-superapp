@@ -28,7 +28,6 @@ class ContributionRepository
     suspend fun getContributions(): List<Contribution> {
         val blocks = musicCommunity.database.getBlocksWithType("contribute-proposal")
             .sortedByDescending { it.sequenceNumber }
-            .distinctBy { it.publicKey.toHex() }
 
         return blocks.map { toContribution(it) }
     }
@@ -42,6 +41,7 @@ class ContributionRepository
         val artists = artist_pks.mapNotNull { artistRepository.getArtist(it) }
 
         return Contribution(
+            id = block.transaction["id"] as String,
             amount = block.transaction["amount"] as Double,
             artists = artists
         )

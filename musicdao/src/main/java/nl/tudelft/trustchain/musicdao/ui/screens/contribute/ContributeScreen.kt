@@ -19,7 +19,9 @@ import androidx.navigation.NavController
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import kotlinx.coroutines.launch
+import nl.tudelft.ipv8.android.IPv8Android
 import nl.tudelft.trustchain.musicdao.core.contribute.Contribution
+import nl.tudelft.trustchain.musicdao.core.ipv8.MusicCommunity
 import nl.tudelft.trustchain.musicdao.ui.SnackbarHandler.coroutineScope
 import nl.tudelft.trustchain.musicdao.ui.components.EmptyState
 import nl.tudelft.trustchain.musicdao.ui.navigation.Screen
@@ -32,16 +34,41 @@ import nl.tudelft.trustchain.musicdao.ui.screens.wallet.BitcoinWalletViewModel
 fun ContributeScreen(
     navController: NavController,
     contributeViewModel: ContributeViewModel,
-    bitcoinWalletViewModel: BitcoinWalletViewModel
+    bitcoinWalletViewModel: BitcoinWalletViewModel,
+//    contributionPool: ContributionPool
 ) {
     val isRefreshing by contributeViewModel.isRefreshing.observeAsState(false)
     val refreshState = rememberSwipeRefreshState(isRefreshing)
     val contributions by contributeViewModel.contributions.collectAsState()
 
+    val musicCommunity: MusicCommunity by lazy {
+        IPv8Android.getInstance()
+            .getOverlay() as? MusicCommunity
+            ?: throw IllegalStateException("MusicCommunity is not configured")
+    }
+
     fun bla() {
         coroutineScope?.launch {
-            ContributionPool.distributePooledContributions(bitcoinWalletViewModel)
-            contributeViewModel.clearContributions()
+            contributeViewModel.contributionPool.value.distributePooledContributions(bitcoinWalletViewModel)
+
+//            // iterate over contributeViewMode.contributions
+//            contributions.forEach { contribution ->
+//                contributeViewModel.contributionPool.value.updateFlushedContributions(contribution)
+//            }
+            contributeViewModel.contributionPool.value.updateFlushedContributions()
+
+            val serializedPool = contributeViewModel.contributionPool.value.serialize()
+            val poolTransaction = mutableMapOf(
+                "data" to serializedPool
+            )
+
+            val myPeer = IPv8Android.getInstance().myPeer
+
+            musicCommunity.createProposalBlock("contribution-pool", poolTransaction, myPeer.publicKey.keyToBin())
+
+            contributeViewModel.refresh()
+
+//            contributeViewModel.clearContributions()
         }
     }
 
