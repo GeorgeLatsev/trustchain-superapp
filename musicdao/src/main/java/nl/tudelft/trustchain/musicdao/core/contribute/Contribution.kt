@@ -7,5 +7,6 @@ data class Contribution(
     val amount: Float,
     val artists: List<Artist>,
     val ipAddress: String? = null,
-    val walletKey: String? = null
+    val walletKey: String? = null,
+    val transactionHash: String? = null
 )

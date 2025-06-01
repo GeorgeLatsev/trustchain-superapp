@@ -114,11 +114,9 @@ class ContributeViewModel
 
         musicCommunity.createProposalBlock("wallet-info", walletInfoTransaction, myPeer.publicKey.keyToBin())
 
-        // Store locally
         _userWalletInfo.value = UserWalletInfo(ipAddress, walletKey)
         _isFirstContribution.value = false
 
-        // Now proceed with normal contribution
         return contribute(amount)
     }
 

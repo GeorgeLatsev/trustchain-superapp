@@ -43,17 +43,18 @@ class ContributionRepository
         // Extract wallet information if available
         val ipAddress = block.transaction["ipAddress"] as? String
         val walletKey = block.transaction["walletKey"] as? String
+        val transactionHash = block.transaction["transactionHash"] as? String
 
         return Contribution(
             id = block.transaction["id"] as String,
             amount = block.transaction["amount"] as Float,
             artists = artists,
             ipAddress = ipAddress,
-            walletKey = walletKey
+            walletKey = walletKey,
+            transactionHash = transactionHash
         )
     }
 
-    // ... existing code ...
 
     suspend fun getOrCrawl(publicKey: String): TrustChainBlock? {
         val block = get(publicKey)
