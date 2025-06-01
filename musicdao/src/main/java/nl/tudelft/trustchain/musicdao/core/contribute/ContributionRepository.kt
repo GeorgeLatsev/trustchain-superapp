@@ -42,7 +42,7 @@ class ContributionRepository
 
         return Contribution(
             id = block.transaction["id"] as String,
-            amount = block.transaction["amount"] as Double,
+            amount = block.transaction["amount"] as Float,
             artists = artists
         )
     }

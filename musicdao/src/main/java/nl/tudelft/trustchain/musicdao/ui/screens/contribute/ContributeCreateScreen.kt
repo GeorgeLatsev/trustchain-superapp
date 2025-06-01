@@ -18,7 +18,6 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
 import nl.tudelft.trustchain.musicdao.ui.SnackbarHandler
-import nl.tudelft.trustchain.musicdao.ui.components.EmptyState
 import nl.tudelft.trustchain.musicdao.ui.screens.profileMenu.CustomMenuItem
 import nl.tudelft.trustchain.musicdao.ui.screens.wallet.BitcoinWalletViewModel
 
@@ -34,9 +33,9 @@ fun ContributeCreateScreen(
     val context = LocalContext.current
 
     fun send() {
-        val amountDouble = amount.value.toDouble()
+        val amountFloat = amount.value.toFloat()
 
-        if (amount.value.isEmpty() || amountDouble <= 0) {
+        if (amount.value.isEmpty() || amountFloat <= 0) {
             SnackbarHandler.displaySnackbar("Please enter a valid amount")
             return
         }
@@ -49,7 +48,7 @@ fun ContributeCreateScreen(
         }
 
         coroutine.launch {
-            val result = contributeViewModel.contribute(amountDouble)
+            val result = contributeViewModel.contribute(amountFloat)
 //            if (result) {
             if (result) {
 //                contributeViewModel.createContribution(

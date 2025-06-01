@@ -53,7 +53,7 @@ class ContributionPool @Inject constructor(
         flushedContributions.addAll(state.flushedContributions)
     }
 
-    fun addContribution(artist: Artist, amount: Double) {
+    fun addContribution(artist: Artist, amount: Float) {
         pool[artist] = pool.getOrDefault(artist, 0.0) + amount
     }
 

@@ -84,7 +84,7 @@ class ContributeViewModel
     }
 
     // Add contributions to the shared pool
-    fun contribute(amount: Double): Boolean {
+    fun contribute(amount: Float): Boolean {
         val artists = artistRepository.getArtists()
 
         if (artists.isNotEmpty()) {
