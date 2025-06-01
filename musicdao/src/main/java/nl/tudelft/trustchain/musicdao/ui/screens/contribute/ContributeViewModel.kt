@@ -1,5 +1,6 @@
 package nl.tudelft.trustchain.musicdao.ui.screens.contribute
 
+import android.content.Context
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -45,12 +46,11 @@ class ContributeViewModel
     private val _contributionPool: MutableStateFlow<ContributionPool> = MutableStateFlow(ContributionPool(artistRepository))
     val contributionPool: StateFlow<ContributionPool> = _contributionPool
 
-//    private val contributionPool = ContributionPool
+    private val _isFirstContribution = MutableStateFlow(true)
+    val isFirstContribution: StateFlow<Boolean> = _isFirstContribution
 
-    private fun getTrustChainCommunity(): TrustChainCommunity {
-        return IPv8Android.getInstance().getOverlay()
-            ?: throw IllegalStateException("TrustChainCommunity is not configured")
-    }
+    private val _userWalletInfo = MutableStateFlow<UserWalletInfo?>(null)
+    val userWalletInfo: StateFlow<UserWalletInfo?> = _userWalletInfo
 
     private val musicCommunity: MusicCommunity by lazy {
         IPv8Android.getInstance()
@@ -83,7 +83,46 @@ class ContributeViewModel
         }
     }
 
-    // Add contributions to the shared pool
+    fun checkFirstContribution() {
+        viewModelScope.launch {
+            // Check if we have any stored wallet information
+            val walletBlocks = musicCommunity.database.getBlocksWithType("wallet-info")
+                .sortedByDescending { it.timestamp }
+
+            if (walletBlocks.isNotEmpty()) {
+                val latestBlock = walletBlocks.first()
+                val ipAddress = latestBlock.transaction["ipAddress"] as String
+                val walletKey = latestBlock.transaction["walletKey"] as String
+
+                _userWalletInfo.value = UserWalletInfo(ipAddress, walletKey)
+                _isFirstContribution.value = false
+            } else {
+                _isFirstContribution.value = true
+            }
+        }
+    }
+
+    // First time contribution with wallet info
+    fun contributeFirstTime(amount: Float, ipAddress: String, walletKey: String): Boolean {
+        val myPeer = IPv8Android.getInstance().myPeer
+
+        // Store wallet info in TrustChain
+        val walletInfoTransaction = mapOf(
+            "ipAddress" to ipAddress,
+            "walletKey" to walletKey
+        )
+
+        musicCommunity.createProposalBlock("wallet-info", walletInfoTransaction, myPeer.publicKey.keyToBin())
+
+        // Store locally
+        _userWalletInfo.value = UserWalletInfo(ipAddress, walletKey)
+        _isFirstContribution.value = false
+
+        // Now proceed with normal contribution
+        return contribute(amount)
+    }
+
+    // Regular contribution (after first time)
     fun contribute(amount: Float): Boolean {
         val artists = artistRepository.getArtists()
 
@@ -113,10 +152,8 @@ class ContributeViewModel
 
             musicCommunity.createProposalBlock("contribution-pool", poolTransaction, myPeer.publicKey.keyToBin())
 
-//            val contribution = Contribution(amount, artists)
-
-            // persist the contribution to the blockchain
-            val transaction = mutableMapOf(
+            // Create transaction for blockchain
+            val transaction = mutableMapOf<String, Any>(
                 "id" to id,
                 "amount" to amount,
                 "artists" to artists.map { it.publicKey }
@@ -124,6 +161,11 @@ class ContributeViewModel
 //                "artists" to artists.joinToString(separator = "@") { it.publicKey }
             )
 
+            // Add wallet information to the transaction if available
+            userWalletInfo.value?.let {
+                transaction["ipAddress"] = it.ipAddress
+                transaction["walletKey"] = it.walletKey
+            }
 
 
 //            trustchain.createProposalBlock(transaction, myPeer.publicKey.keyToBin(), "contribute-proposal")
@@ -201,9 +243,16 @@ class ContributeViewModel
                 withContext(Dispatchers.Main) {
                     _contributions.value = contributions
                     _isRefreshing.value = false
-                }
 
+                    // Refresh first contribution status
+                    checkFirstContribution()
+                }
             }
         }
     }
 }
+
+data class UserWalletInfo(
+    val ipAddress: String,
+    val walletKey: String
+)

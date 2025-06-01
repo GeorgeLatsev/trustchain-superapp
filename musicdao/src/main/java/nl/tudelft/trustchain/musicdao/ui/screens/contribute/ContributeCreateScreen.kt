@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.Button
 import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Text
@@ -11,6 +12,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -28,9 +32,18 @@ fun ContributeCreateScreen(
     navController: NavController
 ) {
     val amount = rememberSaveable { mutableStateOf("0.1") }
+    val ipAddress = rememberSaveable { mutableStateOf("") }
+    val walletKey = rememberSaveable { mutableStateOf("") }
     val coroutine = rememberCoroutineScope()
 
     val context = LocalContext.current
+
+    val isFirstContribution by contributeViewModel.isFirstContribution.collectAsState()
+
+    // Load wallet info if it exists
+    LaunchedEffect(Unit) {
+        contributeViewModel.checkFirstContribution()
+    }
 
     fun send() {
         val amountFloat = amount.value.toFloat()
@@ -47,9 +60,23 @@ fun ContributeCreateScreen(
             return
         }
 
+        // Check if wallet information is provided for first-time contributors
+        if (isFirstContribution && (ipAddress.value.isEmpty() || walletKey.value.isEmpty())) {
+            SnackbarHandler.displaySnackbar("Please provide IP address and wallet key")
+            return
+        }
+
         coroutine.launch {
-            val result = contributeViewModel.contribute(amountFloat)
-//            if (result) {
+            val result = if (isFirstContribution) {
+                contributeViewModel.contributeFirstTime(
+                    amountFloat,
+                    ipAddress.value,
+                    walletKey.value
+                )
+            } else {
+                contributeViewModel.contribute(amountFloat)
+            }
+
             if (result) {
 //                contributeViewModel.createContribution(
 //                    amount.value.toLong(),
@@ -110,7 +137,41 @@ fun ContributeCreateScreen(
             }
         }
 
+        // First-time contributor fields
+        if (isFirstContribution) {
+            Text(
+                text = "First Time Contribution",
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(top = 20.dp, bottom = 10.dp)
+            )
+
+            Text(
+                text = "IP Address",
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(bottom = 5.dp)
+            )
+            OutlinedTextField(
+                value = ipAddress.value,
+                onValueChange = { ipAddress.value = it },
+                modifier = Modifier.padding(bottom = 10.dp).fillMaxWidth()
+            )
+
+            Text(
+                text = "Public Wallet Key",
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(bottom = 5.dp)
+            )
+            OutlinedTextField(
+                value = walletKey.value,
+                onValueChange = { walletKey.value = it },
+                modifier = Modifier.padding(bottom = 10.dp).fillMaxWidth()
+            )
+        }
+
         Spacer(modifier = Modifier.weight(1f))
-        CustomMenuItem(text = "Confirm contribution", onClick = { send() })
+        CustomMenuItem(
+            text = if (isFirstContribution) "Confirm First Contribution" else "Confirm Contribution",
+            onClick = { send() }
+        )
     }
 }

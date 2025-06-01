@@ -40,12 +40,20 @@ class ContributionRepository
 
         val artists = artist_pks.mapNotNull { artistRepository.getArtist(it) }
 
+        // Extract wallet information if available
+        val ipAddress = block.transaction["ipAddress"] as? String
+        val walletKey = block.transaction["walletKey"] as? String
+
         return Contribution(
             id = block.transaction["id"] as String,
             amount = block.transaction["amount"] as Float,
-            artists = artists
+            artists = artists,
+            ipAddress = ipAddress,
+            walletKey = walletKey
         )
     }
+
+    // ... existing code ...
 
     suspend fun getOrCrawl(publicKey: String): TrustChainBlock? {
         val block = get(publicKey)
@@ -90,6 +98,21 @@ class ContributionRepository
             mostUpdatedContribution
         } else {
             return null
+        }
+    }
+
+    fun getWalletInfo(): Pair<String, String>? {
+        val walletBlocks = musicCommunity.database.getBlocksWithType("wallet-info")
+            .sortedByDescending { it.timestamp }
+
+        return if (walletBlocks.isNotEmpty()) {
+            val latestBlock = walletBlocks.first()
+            val ipAddress = latestBlock.transaction["ipAddress"] as String
+            val walletKey = latestBlock.transaction["walletKey"] as String
+
+            Pair(ipAddress, walletKey)
+        } else {
+            null
         }
     }
 }
