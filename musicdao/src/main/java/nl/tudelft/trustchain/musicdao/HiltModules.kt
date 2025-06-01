@@ -16,7 +16,6 @@ import nl.tudelft.trustchain.musicdao.core.wallet.WalletConfig.Companion.DEFAULT
 import nl.tudelft.trustchain.musicdao.core.wallet.WalletConfig.Companion.DEFAULT_REGTEST_BOOTSTRAP_IP
 import nl.tudelft.trustchain.musicdao.core.wallet.WalletConfig.Companion.DEFAULT_REGTEST_BOOTSTRAP_PORT
 import nl.tudelft.trustchain.musicdao.core.wallet.WalletService
-import nl.tudelft.trustchain.musicdao.core.dao.DaoCommunity
 import com.frostwire.jlibtorrent.SessionManager
 import com.frostwire.jlibtorrent.SessionParams
 import com.frostwire.jlibtorrent.SettingsPack
@@ -98,13 +97,6 @@ class HiltModules {
     fun musicCommunity(): MusicCommunity {
         return IPv8Android.getInstance().getOverlay()
             ?: throw IllegalStateException("MusicCommunity is not configured")
-    }
-
-    @Provides
-    @Singleton
-    fun daoCommunity(): DaoCommunity {
-        return IPv8Android.getInstance().getOverlay()
-            ?: throw IllegalStateException("DaoCommunity is not configured")
     }
 
     @Provides
