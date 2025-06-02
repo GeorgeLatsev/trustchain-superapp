@@ -39,6 +39,7 @@ import nl.tudelft.trustchain.musicdao.ui.screens.contribute.ContributionPool
 import nl.tudelft.trustchain.musicdao.ui.screens.dao.*
 import nl.tudelft.trustchain.musicdao.ui.screens.debug.DebugScreenViewModel
 import nl.tudelft.trustchain.musicdao.ui.screens.profile.EditProfileScreen
+import nl.tudelft.trustchain.musicdao.ui.screens.profile.ListeningStatsScreen
 import nl.tudelft.trustchain.musicdao.ui.screens.profile.MyProfileScreen
 import nl.tudelft.trustchain.musicdao.ui.screens.profile.MyProfileScreenViewModel
 import nl.tudelft.trustchain.musicdao.ui.screens.profile.ProfileScreen
@@ -95,6 +96,9 @@ fun AppNavigation(
             }
             composable(Screen.BitcoinWallet.route) {
                 BitcoinWalletScreen(bitcoinWalletViewModel = bitcoinWalletViewModel)
+            }
+            composable(Screen.ListeningStats.route) {
+                ListeningStatsScreen()
             }
             composable(
                 Screen.Donate.route,

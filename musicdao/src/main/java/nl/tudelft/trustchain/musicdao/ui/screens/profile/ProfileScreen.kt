@@ -38,7 +38,12 @@ fun ProfileScreen(
     val releases = viewModel.releases.collectAsState()
 
     profile.value?.let {
-        Profile(artist = it, releases = releases.value, navController = navController)
+        Profile(
+            artist = it,
+            releases = releases.value,
+            navController = navController,
+            myPublicKey = viewModel.publicKey
+        )
     } ?: Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         EmptyState(firstLine = "404", secondLine = "This artist has not published  any information yet.")
         return

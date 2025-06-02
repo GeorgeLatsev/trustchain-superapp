@@ -54,4 +54,5 @@ sealed class Screen(val route: String) {
     object Contribute : Screen("contribute")
 
     object NewContributionRoute : Screen("contribute/new")
+    object ListeningStats : Screen("listening_stats")
 }
