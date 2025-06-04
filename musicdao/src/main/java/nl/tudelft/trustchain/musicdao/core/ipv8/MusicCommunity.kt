@@ -35,7 +35,7 @@ class MusicCommunity(
     // has been received from peers
 
     val discoveredAddressesContacted: MutableMap<IPv4Address, Date> = mutableMapOf()
-    var isServer: Boolean = false
+    var isServer: Boolean = true
     var server: Peer? = null
 
     class Factory(
@@ -197,14 +197,18 @@ class MusicCommunity(
             val msgId = data[prefix.size].toUByte().toInt()
 
             if (msgId == nl.tudelft.ipv8.Community.MessageId.INTRODUCTION_REQUEST) {
+
+                Log.i("Got Introduction Req", "Received introduction request from ${packet.source}")
+
                 val (peer, payload) = packet.getAuthPayload(IntroductionRequestPayload.Deserializer)
-                if (payload.extraBytes == byteArrayOf(0x01)) {
+                Log.i("Introduction Request", "Received from: ${peer.address} (${payload})")
+                if (payload.extraBytes.contentEquals(byteArrayOf(0x01))) {
                     Log.i("found server", "Found server: ${peer.address} (${peer.mid})")
                     server = peer
-                } else if (payload.extraBytes == byteArrayOf(0x02) && server != null) {
+                } else if (payload.extraBytes.contentEquals(byteArrayOf(0x02)) && server != null) {
                     val globalTime = claimGlobalTime()
 
-                    val payload = IntroductionRequestPayload(
+                    val payloadNew = IntroductionRequestPayload(
                         peer.address,
                         server?.lanAddress ?: myEstimatedLan,
                         server?.wanAddress ?: myEstimatedWan,
@@ -214,7 +218,28 @@ class MusicCommunity(
                         byteArrayOf(0x01)
                     )
                     Log.i("I know the server", "Impersonating server: ${peer.address} (${peer.mid})")
-                    send(peer.address, serializePacket(nl.tudelft.ipv8.Community.MessageId.INTRODUCTION_REQUEST, payload))
+                    send(peer.address, serializePacket(nl.tudelft.ipv8.Community.MessageId.INTRODUCTION_REQUEST, payloadNew))
+                }
+            }
+        }
+
+        if (isServer) {
+            val data = packet.data
+
+            val msgId = data[prefix.size].toUByte().toInt()
+
+            if (msgId == nl.tudelft.ipv8.Community.MessageId.INTRODUCTION_REQUEST) {
+                Log.i("Got Introduction Req Server", "Received introduction request from ${packet.source}")
+
+                val (peer, payload) = packet.getAuthPayload(IntroductionRequestPayload.Deserializer)
+                Log.i("Introduction Request Server", "Received from: ${peer.address} (${payload})")
+
+                val extraBytes: ByteArray = byteArrayOf(0x01)
+                val packetNew = createIntroductionRequest(peer.address, extraBytes)
+                if (!discoveredAddressesContacted.containsKey(peer.address)) {
+                    send(peer.address, packetNew)
+                    Log.i("I am the server someone asked about me", "Hello slave: ${peer.address} (${peer.mid})")
+                    discoveredAddressesContacted[peer.address] = Date()
                 }
             }
         }
