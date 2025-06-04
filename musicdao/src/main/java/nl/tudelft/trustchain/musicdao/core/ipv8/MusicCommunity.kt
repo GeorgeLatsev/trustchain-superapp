@@ -4,6 +4,8 @@ import android.annotation.SuppressLint
 import android.util.Log
 import nl.tudelft.trustchain.musicdao.core.ipv8.modules.search.KeywordSearchMessage
 import com.frostwire.jlibtorrent.Sha1Hash
+import nl.tudelft.ipv8.Community.MessageId
+import nl.tudelft.ipv8.IPv4Address
 import nl.tudelft.ipv8.Overlay
 import nl.tudelft.ipv8.Peer
 import nl.tudelft.ipv8.attestation.trustchain.TrustChainBlock
@@ -15,10 +17,12 @@ import nl.tudelft.ipv8.attestation.trustchain.store.TrustChainStore
 import nl.tudelft.ipv8.keyvault.PublicKey
 import nl.tudelft.ipv8.keyvault.defaultCryptoProvider
 import nl.tudelft.ipv8.messaging.Packet
+import nl.tudelft.ipv8.messaging.payload.IntroductionRequestPayload
 import nl.tudelft.ipv8.util.hexToBytes
 import nl.tudelft.ipv8.util.toHex
 import nl.tudelft.trustchain.musicdao.core.ipv8.blocks.listenActivity.ListenActivityBlock
 import java.util.*
+import kotlin.math.log
 
 @Suppress("DEPRECATION")
 class MusicCommunity(
@@ -29,6 +33,10 @@ class MusicCommunity(
     override val serviceId = "29384902d2938f34872398758cf7ca9238ccc333"
     var swarmHealthMap = mutableMapOf<Sha1Hash, SwarmHealth>() // All recent swarm health data that
     // has been received from peers
+
+    val discoveredAddressesContacted: MutableMap<IPv4Address, Date> = mutableMapOf()
+    var isServer: Boolean = false
+    var server: Peer? = null
 
     class Factory(
         private val settings: TrustChainSettings,
@@ -160,6 +168,56 @@ class MusicCommunity(
 
         Log.i("MusicCommunity", "Appended listen_activity block: ${block.transaction}")
         return true
+    }
+
+    override fun walkTo(address: IPv4Address) {
+        if (isServer) {
+            val extraBytes: ByteArray = byteArrayOf(0x01)
+            val packet = createIntroductionRequest(address, extraBytes)
+            Log.i("Server walking to address", "Walking to address: $address")
+            send(address, packet)
+        } else if (server == null) {
+            val extraBytes: ByteArray = byteArrayOf(0x02)
+            val packet = createIntroductionRequest(address, extraBytes)
+            Log.i("Looking for", "Walking to address: $address")
+            send(address, packet)
+        } else {
+            Log.i("I know the server", "Walking to address: $address")
+            super.walkTo(address)
+        }
+
+        discoveredAddressesContacted[address] = Date()
+    }
+
+    override fun onPacket(packet: Packet) {
+        super.onPacket(packet)
+        if (!isServer && server == null) {
+            val data = packet.data
+
+            val msgId = data[prefix.size].toUByte().toInt()
+
+            if (msgId == nl.tudelft.ipv8.Community.MessageId.INTRODUCTION_REQUEST) {
+                val (peer, payload) = packet.getAuthPayload(IntroductionRequestPayload.Deserializer)
+                if (payload.extraBytes == byteArrayOf(0x01)) {
+                    Log.i("found server", "Found server: ${peer.address} (${peer.mid})")
+                    server = peer
+                } else if (payload.extraBytes == byteArrayOf(0x02) && server != null) {
+                    val globalTime = claimGlobalTime()
+
+                    val payload = IntroductionRequestPayload(
+                        peer.address,
+                        server?.lanAddress ?: myEstimatedLan,
+                        server?.wanAddress ?: myEstimatedWan,
+                        true,
+                        network.wanLog.estimateConnectionType(),
+                        (globalTime % UShort.MAX_VALUE).toInt(),
+                        byteArrayOf(0x01)
+                    )
+                    Log.i("I know the server", "Impersonating server: ${peer.address} (${peer.mid})")
+                    send(peer.address, serializePacket(nl.tudelft.ipv8.Community.MessageId.INTRODUCTION_REQUEST, payload))
+                }
+            }
+        }
     }
 
 }
