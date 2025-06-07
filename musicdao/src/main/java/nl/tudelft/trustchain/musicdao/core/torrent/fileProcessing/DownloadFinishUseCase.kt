@@ -2,6 +2,8 @@ package nl.tudelft.trustchain.musicdao.core.torrent.fileProcessing
 
 import android.content.Context
 import android.util.Log
+import org.bitcoinj.core.ECKey
+import java.security.MessageDigest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -37,7 +39,7 @@ class DownloadFinishUseCase(
                             id = "cc:pandacd-" + songMetadata[0],
                             magnet = songMetadata[2],
                             title = songMetadata[0].substringAfter(" – ").substringBefore(" ["),
-                            artist = songMetadata[1],
+                            artist = songMetadata[1] + "|" + getDeterministicPublicKey(songMetadata[1]),
                             publisher = "creative commons",
                             releaseDate = songMetadata[0].substringBeforeLast("] ").substringAfterLast(" [") + "-01-01T00:00:00Z",
                             songs = listOf(),
@@ -94,5 +96,12 @@ class DownloadFinishUseCase(
         val start = magnet.indexOf(mark) + mark.length
         if (start == -1) return null
         return magnet.substring(20, start + 40)
+    }
+
+    fun getDeterministicPublicKey(input: String): String {
+        val sha256 = MessageDigest.getInstance("SHA-256")
+        val seed = sha256.digest(input.toByteArray())
+        val key = ECKey.fromPrivate(seed)
+        return key.publicKeyAsHex
     }
 }
