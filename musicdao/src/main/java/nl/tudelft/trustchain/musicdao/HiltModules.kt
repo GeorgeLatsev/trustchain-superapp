@@ -152,13 +152,35 @@ class HiltModules {
 
     @Provides
     @Singleton
+    @Named("serverWallet")
+    fun provideServerWalletService(
+        @ApplicationContext applicationContext: Context,
+        @Named("serverWalletManager")
+        walletManager: WalletManager
+    ): WalletService {
+        return WalletService(
+            WalletConfig(
+                networkParams = DEFAULT_NETWORK_PARAMS,
+                filePrefix = DEFAULT_FILE_PREFIX + "server_",
+                cacheDir = Paths.get("${applicationContext.cacheDir}").toFile(),
+                regtestFaucetEndPoint = DEFAULT_FAUCET_ENDPOINT,
+                regtestBootstrapIp = DEFAULT_REGTEST_BOOTSTRAP_IP,
+                regtestBootstrapPort = DEFAULT_REGTEST_BOOTSTRAP_PORT
+            ),
+            walletManager.kit
+        )
+    }
+
+    @Provides
+    @Singleton
     fun provideWalletManager(
         @ApplicationContext context: Context
     ): WalletManager {
+        val walletId = "user_wallet"
         Log.d("MVDAO", "INITIATING DAO MODULE.")
-        if (WalletManagerAndroid.isInitialized()) {
+        if (WalletManagerAndroid.isInitialized(walletId)) {
             Log.d("MVDAO", "DAO MODULE ALREADY INITIALIZED, SKIPPING")
-            return WalletManagerAndroid.getInstance()
+            return WalletManagerAndroid.getInstance(walletId)
         }
         val params = BitcoinNetworkOptions.REG_TEST
 
@@ -171,12 +193,46 @@ class HiltModules {
 
         WalletManagerAndroid.Factory(context)
             .setConfiguration(config)
+            .setWalletId(walletId)
             .init()
 
-        Log.d("MVDAO", "Wallet manager: ${WalletManagerAndroid.getInstance()}")
+        Log.d("MVDAO", "User wallet manager: ${WalletManagerAndroid.getInstance(walletId)}")
 
-        return WalletManagerAndroid.getInstance()
+        return WalletManagerAndroid.getInstance(walletId)
     }
+
+    @Provides
+    @Singleton
+    @Named("serverWalletManager")
+    fun provideServerWalletManager(
+        @ApplicationContext context: Context
+    ): WalletManager {
+        val walletId = "server_wallet"
+        Log.d("MVDAO", "INITIATING DAO MODULE.")
+        if (WalletManagerAndroid.isInitialized(walletId)) {
+            Log.d("MVDAO", "DAO MODULE ALREADY INITIALIZED, SKIPPING")
+            return WalletManagerAndroid.getInstance(walletId)
+        }
+        val params = BitcoinNetworkOptions.REG_TEST
+
+        val config =
+            WalletManagerConfiguration(
+                params,
+                null,
+                null
+            )
+
+        WalletManagerAndroid.Factory(context)
+            .setConfiguration(config)
+            .setWalletId(walletId)
+            .init()
+
+        Log.d("MVDAO", "Server wallet manager: ${WalletManagerAndroid.getInstance(walletId)}")
+
+        return WalletManagerAndroid.getInstance(walletId)
+    }
+
+
 }
 
 class CachePath(val applicationContext: Context) {

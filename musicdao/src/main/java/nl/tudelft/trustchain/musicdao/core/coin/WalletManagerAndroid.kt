@@ -1,34 +1,46 @@
 package nl.tudelft.trustchain.musicdao.core.coin
 
 import android.content.Context
+import java.io.File
 
 /**
  * Singleton class for WalletManager which also sets-up Android specific things.
  */
 object WalletManagerAndroid { // TODO: Clean up Thread usage.
-    private var walletManager: WalletManager? = null
-    var isRunning: Boolean = false
+    private val walletManagers = mutableMapOf<String, WalletManager>()
+    private val isRunning = mutableMapOf<String, Boolean>()
 
-    fun getInstance(): WalletManager {
-        return walletManager
-            ?: throw IllegalStateException("WalletManager is not initialized")
+    fun getInstance(walletId: String): WalletManager {
+        return walletManagers[walletId]
+            ?: throw IllegalStateException("WalletManager with ID '$walletId' is not initialized")
     }
 
     class Factory(
         private val context: Context
     ) {
         private var configuration: WalletManagerConfiguration? = null
+        private var walletId: String? = null
 
         fun setConfiguration(configuration: WalletManagerConfiguration): Factory {
             this.configuration = configuration
             return this
         }
 
+        fun setWalletId(walletId: String): Factory {
+            this.walletId = walletId
+            return this
+        }
+
         fun init(): WalletManager {
-            val walletDir = context.filesDir
             val configuration =
                 configuration
                     ?: throw IllegalStateException("Configuration is not set")
+            val walletId = this.walletId
+                ?: throw IllegalStateException("Wallet ID is not set")
+
+            val walletDir = File(context.filesDir, "wallet_$walletId").apply {
+                if (!exists()) mkdirs()
+            }
 
             val walletManager =
                 WalletManager(
@@ -38,15 +50,15 @@ object WalletManagerAndroid { // TODO: Clean up Thread usage.
                     configuration.addressPrivateKeyPair
                 )
 
-            WalletManagerAndroid.walletManager = walletManager
-            isRunning = true
+            walletManagers[walletId] = walletManager
+            isRunning[walletId] = true
 
             return walletManager
         }
     }
 
-    fun isInitialized(): Boolean {
-        return walletManager != null
+    fun isInitialized(walletId: String): Boolean {
+        return walletManagers.containsKey(walletId)
     }
 
     /**
@@ -54,7 +66,8 @@ object WalletManagerAndroid { // TODO: Clean up Thread usage.
      * This method will block the thread until the kit has been shut down.
      */
     fun close() {
-        walletManager!!.kit.stopAsync().awaitTerminated()
-        walletManager = null
+        walletManagers.values.forEach { it.kit.stopAsync().awaitTerminated() }
+        walletManagers.clear()
+        isRunning.clear()
     }
 }
