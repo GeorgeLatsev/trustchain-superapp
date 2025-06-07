@@ -3,6 +3,10 @@ package nl.tudelft.trustchain.musicdao.core.torrent.fileProcessing
 import android.content.Context
 import android.util.Log
 import org.bitcoinj.core.ECKey
+import org.bitcoinj.params.MainNetParams
+import org.bitcoinj.core.Sha256Hash
+import org.bitcoinj.core.Address
+import org.bitcoinj.core.SegwitAddress
 import java.security.MessageDigest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -39,7 +43,7 @@ class DownloadFinishUseCase(
                             id = "cc:pandacd-" + songMetadata[0],
                             magnet = songMetadata[2],
                             title = songMetadata[0].substringAfter(" – ").substringBefore(" ["),
-                            artist = songMetadata[1] + "|" + getDeterministicPublicKey(songMetadata[1]),
+                            artist = songMetadata[1] + "|" + getDeterministicSegwitAddress(songMetadata[1]),
                             publisher = "creative commons",
                             releaseDate = songMetadata[0].substringBeforeLast("] ").substringAfterLast(" [") + "-01-01T00:00:00Z",
                             songs = listOf(),
@@ -98,10 +102,15 @@ class DownloadFinishUseCase(
         return magnet.substring(20, start + 40)
     }
 
-    fun getDeterministicPublicKey(input: String): String {
+    /**
+     * Generates a deterministic public key based on the input string.
+     * This is used to create a unique public key for each artist.
+     */
+    fun getDeterministicSegwitAddress(input: String): String {
         val sha256 = MessageDigest.getInstance("SHA-256")
         val seed = sha256.digest(input.toByteArray())
         val key = ECKey.fromPrivate(seed)
-        return key.publicKeyAsHex
+        val params = MainNetParams.get()
+        return SegwitAddress.fromKey(params, key).toString()
     }
 }
