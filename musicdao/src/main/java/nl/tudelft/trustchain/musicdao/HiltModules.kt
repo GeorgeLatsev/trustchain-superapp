@@ -28,8 +28,10 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import nl.tudelft.ipv8.android.IPv8Android
 import nl.tudelft.trustchain.musicdao.core.coin.*
+import nl.tudelft.trustchain.musicdao.core.server.persistence.ServerDatabase
 import java.nio.file.Path
 import java.nio.file.Paths
+import javax.inject.Named
 import javax.inject.Singleton
 
 @Module
@@ -46,6 +48,19 @@ class HiltModules {
             "musicdao-database"
         ).fallbackToDestructiveMigration()
             .addTypeConverter(Converters(GsonParser(Gson())))
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideServerDatabase(
+        @ApplicationContext applicationContext: Context
+    ): ServerDatabase {
+        return Room.databaseBuilder(
+            applicationContext,
+            ServerDatabase::class.java,
+            "musicdao-server-database"
+        ).fallbackToDestructiveMigration()
             .build()
     }
 
