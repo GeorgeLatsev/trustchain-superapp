@@ -127,7 +127,7 @@ fun ContributionItem(contribution: Contribution) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text("Amount: ${contribution.amount} BTC")
-            Text("Artists: ${contribution.artists.joinToString { it.name }}")
+            Text("Artists: ${contribution.artists.joinToString { it.substringBefore("|") }}")
         }
     }
 }

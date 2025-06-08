@@ -15,7 +15,7 @@ import javax.inject.Inject
 class ContributionPool @Inject constructor(
     private val artistRepository: ArtistRepository
 ) {
-    private val pool: MutableMap<Artist, Double> = mutableMapOf()
+    private val pool: MutableMap<String, Double> = mutableMapOf()
     private val contributionObjects: MutableList<String> = mutableListOf()
     private val flushedContributions: MutableSet<String> = mutableSetOf()
 
@@ -28,7 +28,7 @@ class ContributionPool @Inject constructor(
 
     fun serialize(): String {
         val state = ContributionPoolData(
-            pool = pool.mapKeys { it.key.publicKey },
+            pool = pool,
             contributionObjects = contributionObjects,
             flushedContributions = flushedContributions
         )
@@ -41,9 +41,10 @@ class ContributionPool @Inject constructor(
         pool.clear()
 
         for ((publicKey, amount) in state.pool) {
-            artistRepository.getArtist(publicKey)?.let { artist ->
-                pool[artist] = amount
-            }
+//            artistRepository.getArtist(publicKey)?.let { artist ->
+//                pool[artist] = amount
+//            }
+            pool[publicKey] = amount
         }
 
         contributionObjects.clear()
@@ -53,7 +54,7 @@ class ContributionPool @Inject constructor(
         flushedContributions.addAll(state.flushedContributions)
     }
 
-    fun addContribution(artist: Artist, amount: Float) {
+    fun addContribution(artist: String, amount: Float) {
         pool[artist] = pool.getOrDefault(artist, 0.0) + amount
     }
 
@@ -61,7 +62,7 @@ class ContributionPool @Inject constructor(
         contributionObjects.add(contribution.id)
     }
 
-    fun getPooledAmount(artist: Artist): Double {
+    fun getPooledAmount(artist: String): Double {
         return pool.getOrDefault(artist, 0.0)
     }
 
@@ -69,7 +70,7 @@ class ContributionPool @Inject constructor(
         return flushedContributions.toSet()
     }
 
-    fun clearPool(): Map<Artist, Double> {
+    fun clearPool(): Map<String, Double> {
         val contributions = pool.toMap()
         pool.clear()
         return contributions
@@ -79,7 +80,9 @@ class ContributionPool @Inject constructor(
     suspend fun distributePooledContributions(bitcoinWalletViewModel: BitcoinWalletViewModel): Boolean {
         val pooledContributions = clearPool()
         for ((artist, totalAmount) in pooledContributions) {
-            val success = bitcoinWalletViewModel.donate(artist.publicKey, totalAmount.toString())
+            if (artist == "Artist") continue
+            val segwitAddress = artist.substringAfter("|")
+            val success = bitcoinWalletViewModel.donate(segwitAddress, totalAmount.toString())
             if (!success) return false
         }
         return true

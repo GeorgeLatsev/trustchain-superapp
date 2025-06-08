@@ -36,9 +36,9 @@ class ContributionRepository
 //        val artistStr = block.transaction["artists"] as String
 //        val artist_pks = artistStr.split("@").map { it.trim() }
 
-        val artist_pks = block.transaction["artists"] as List<String>
+        val artists = block.transaction["artists"] as List<String>
 
-        val artists = artist_pks.mapNotNull { artistRepository.getArtist(it) }
+//        val artists = artist_pks.mapNotNull { artistRepository.getArtist(it) }
 
         return Contribution(
             id = block.transaction["id"] as String,

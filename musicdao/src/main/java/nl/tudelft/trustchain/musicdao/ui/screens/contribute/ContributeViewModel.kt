@@ -22,6 +22,7 @@ import nl.tudelft.ipv8.attestation.trustchain.store.TrustChainStore
 import nl.tudelft.trustchain.musicdao.core.contribute.Contribution
 import nl.tudelft.trustchain.musicdao.core.contribute.ContributionRepository
 import nl.tudelft.trustchain.musicdao.core.ipv8.MusicCommunity
+import nl.tudelft.trustchain.musicdao.core.ipv8.blocks.listenActivity.ListenActivityBlockRepository
 import nl.tudelft.trustchain.musicdao.core.repositories.model.Artist
 import nl.tudelft.trustchain.musicdao.core.util.TrustChainHelper
 import nl.tudelft.trustchain.musicdao.ui.screens.wallet.BitcoinWalletViewModel
@@ -34,6 +35,7 @@ class ContributeViewModel
         private val artistRepository: ArtistRepository,
         private val contributionRepository: ContributionRepository,
 //        val contributionPool: ContributionPool
+        private val listenActivityBlockRepository: ListenActivityBlockRepository
     ) : ViewModel() {
 
     private val _isRefreshing: MutableLiveData<Boolean> = MutableLiveData()
@@ -44,6 +46,9 @@ class ContributeViewModel
 
     private val _contributionPool: MutableStateFlow<ContributionPool> = MutableStateFlow(ContributionPool(artistRepository))
     val contributionPool: StateFlow<ContributionPool> = _contributionPool
+
+    private val _listenActivity: MutableStateFlow<Map<String, Double>> = MutableStateFlow(mapOf())
+    val listenActivity: StateFlow<Map<String, Double>> = _listenActivity
 
 //    private val contributionPool = ContributionPool
 
@@ -80,17 +85,25 @@ class ContributeViewModel
             _contributions.value = contributionsFromRepo.filterNot { contribution ->
                 flushedContributions.contains(contribution.id)
             }
+
+            _listenActivity.value = listenActivityBlockRepository.getMinutesPerArtist()
         }
     }
 
     // Add contributions to the shared pool
     fun contribute(amount: Float): Boolean {
-        val artists = artistRepository.getArtists()
+        _listenActivity.value = listenActivityBlockRepository.getMinutesPerArtist()
 
-        if (artists.isNotEmpty()) {
-            val share = amount / artists.size
-            artists.forEach { artist ->
-                contributionPool.value.addContribution(artist, share)
+//        val artists = artistRepository.getArtists()
+
+        if (listenActivity.value.isNotEmpty()) {
+            val totalListenedTime = listenActivity.value.values.sum()
+            val sharePerArtist = listenActivity.value.mapValues { (_, minutes) ->
+                (minutes / totalListenedTime).toFloat()
+            }
+
+            sharePerArtist.forEach() { artist ->
+                contributionPool.value.addContribution(artist.key, amount * artist.value)
             }
 
             val id = UUID.randomUUID().toString()
@@ -99,7 +112,7 @@ class ContributeViewModel
             val contribution = Contribution(
                 id = id,
                 amount = amount,
-                artists = artists
+                artists = sharePerArtist.keys.toList()
             )
 
             contributionPool.value.addContributionObject(contribution)
@@ -119,7 +132,7 @@ class ContributeViewModel
             val transaction = mutableMapOf(
                 "id" to id,
                 "amount" to amount,
-                "artists" to artists.map { it.publicKey }
+                "artists" to sharePerArtist.keys.toList()
 //                // create a string of all the artist public keys separated by @'s
 //                "artists" to artists.joinToString(separator = "@") { it.publicKey }
             )
