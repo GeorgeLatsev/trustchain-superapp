@@ -3,6 +3,7 @@ package nl.tudelft.trustchain.musicdao.ui.screens.settings
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material.ExperimentalMaterialApi
@@ -13,12 +14,17 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.app.ActivityCompat.startActivityForResult
+import androidx.navigation.NavController
 import nl.tudelft.trustchain.musicdao.AppContainer
 import kotlinx.coroutines.launch
+import nl.tudelft.trustchain.musicdao.ui.navigation.Screen
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun SettingsScreen(settingsScreenViewModel: SettingsScreenViewModel) {
+fun SettingsScreen(
+    navController: NavController,
+    settingsScreenViewModel: SettingsScreenViewModel
+) {
     val coroutine = rememberCoroutineScope()
     val context = LocalContext.current
 
@@ -46,6 +52,12 @@ fun SettingsScreen(settingsScreenViewModel: SettingsScreenViewModel) {
                 Modifier.clickable {
                     openFilePickerDialog()
                 }
+        )
+        ListItem(
+            text = { Text(text = "Server information") },
+            modifier = Modifier.clickable {
+                navController.navigate(Screen.Server.route)
+            }
         )
     }
 }

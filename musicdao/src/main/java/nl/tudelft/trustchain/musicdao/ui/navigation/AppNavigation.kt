@@ -38,6 +38,14 @@ import nl.tudelft.trustchain.musicdao.ui.screens.profile.MyProfileScreen
 import nl.tudelft.trustchain.musicdao.ui.screens.profile.MyProfileScreenViewModel
 import nl.tudelft.trustchain.musicdao.ui.screens.profile.ProfileScreen
 import nl.tudelft.trustchain.musicdao.ui.screens.profileMenu.ProfileMenuScreen
+import nl.tudelft.trustchain.musicdao.ui.screens.server.ServerContributionsScreen
+import nl.tudelft.trustchain.musicdao.ui.screens.server.ServerContributionsScreenViewModel
+import nl.tudelft.trustchain.musicdao.ui.screens.server.ServerPayoutDetailScreen
+import nl.tudelft.trustchain.musicdao.ui.screens.server.ServerPayoutDetailScreenViewModel
+import nl.tudelft.trustchain.musicdao.ui.screens.server.ServerPayoutsScreen
+import nl.tudelft.trustchain.musicdao.ui.screens.server.ServerPayoutsScreenViewModel
+import nl.tudelft.trustchain.musicdao.ui.screens.server.ServerScreen
+import nl.tudelft.trustchain.musicdao.ui.screens.server.ServerScreenViewModel
 
 @ExperimentalAnimationApi
 @ExperimentalFoundationApi
@@ -107,7 +115,10 @@ fun AppNavigation(
             }
             composable(Screen.Settings.route) {
                 val settingsScreenViewModel: SettingsScreenViewModel = hiltViewModel()
-                SettingsScreen(settingsScreenViewModel)
+                SettingsScreen(
+                    navController = navController,
+                    settingsScreenViewModel = settingsScreenViewModel
+                )
             }
             composable(Screen.CreateRelease.route) {
                 CreateReleaseDialog(navController = navController)
@@ -162,6 +173,48 @@ fun AppNavigation(
                 }
             ) {
                 FullPlayerScreen(playerViewModel)
+            }
+
+            composable(
+                Screen.Server.route,
+            ) {
+                val serverScreenViewModel: ServerScreenViewModel = hiltViewModel()
+                ServerScreen(
+                    navController = navController,
+                    serverScreenViewModel = serverScreenViewModel
+                )
+            }
+            composable(
+                Screen.ServerPayouts.route,
+            ) {
+                val serverPayoutsScreenViewModel: ServerPayoutsScreenViewModel = hiltViewModel()
+                ServerPayoutsScreen(
+                    navController = navController,
+                    serverPayoutsScreenViewModel = serverPayoutsScreenViewModel,
+                )
+            }
+            composable(
+                Screen.ServerPayoutDetail.route,
+                arguments =
+                    listOf(
+                        navArgument("payoutId") {
+                            type = NavType.StringType
+                        }
+                    ),
+            ) {navBackStackEntry ->
+                val serverPayoutDetailScreenViewModel: ServerPayoutDetailScreenViewModel = hiltViewModel()
+                ServerPayoutDetailScreen(
+                    payoutId = navBackStackEntry.arguments?.getString("payoutId") ?: "",
+                    viewModel = serverPayoutDetailScreenViewModel,
+                )
+            }
+            composable(
+                Screen.ServerContributions.route,
+            ) {
+                val serverContributionsScreenViewModel: ServerContributionsScreenViewModel = hiltViewModel()
+                ServerContributionsScreen(
+                    viewModel = serverContributionsScreenViewModel
+                )
             }
         }
     )

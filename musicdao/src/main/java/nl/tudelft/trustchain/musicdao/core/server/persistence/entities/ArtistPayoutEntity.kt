@@ -1,13 +1,22 @@
 package nl.tudelft.trustchain.musicdao.core.server.persistence.entities
 
 import androidx.room.Entity
-import androidx.room.PrimaryKey
+import androidx.room.ForeignKey
+import androidx.room.Index
 
-@Entity(primaryKeys = ["artistAddress", "payoutId"])
-data class ArtistPayoutEntity ( // we need to freeze the payout amount for the artist when entering phase 2, we could save it somewhere else, or add a payout id or sth
+@Entity(
+    primaryKeys = ["artistAddress", "payoutId"],
+    foreignKeys = [
+        ForeignKey(
+            entity = PayoutEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["payoutId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [Index("payoutId")])
+data class ArtistPayoutEntity (
     val artistAddress: String,
     val payoutId: String,
     val payoutAmount: Long,
-) {
-
-}
+)

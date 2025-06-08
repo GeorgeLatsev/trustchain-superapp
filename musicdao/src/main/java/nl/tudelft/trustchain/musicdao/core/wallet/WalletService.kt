@@ -69,7 +69,7 @@ class WalletService(val config: WalletConfig, private val app: WalletAppKit) {
     fun sendCoins(
         publicKey: String,
         coinsAmount: String
-    ): Boolean {
+    ): String? {
         Log.d("MusicDao", "Wallet (1): sending $coinsAmount to $publicKey")
 
         val coins: BigDecimal =
@@ -78,7 +78,7 @@ class WalletService(val config: WalletConfig, private val app: WalletAppKit) {
             } catch (e: NumberFormatException) {
                 Log.d("MusicDao", "Wallet (2): failed to parse $coinsAmount")
                 null
-            } ?: return false
+            } ?: return null
 
         val satoshiAmount = (coins * SATS_PER_BITCOIN).toLong()
 
@@ -88,17 +88,17 @@ class WalletService(val config: WalletConfig, private val app: WalletAppKit) {
             } catch (e: Exception) {
                 Log.d("MusicDao", "Wallet (3): failed to parse $publicKey")
                 null
-            } ?: return false
+            } ?: return null
 
         val sendRequest = SendRequest.to(targetAddress, Coin.valueOf(satoshiAmount))
 
         return try {
-            app.wallet().sendCoins(sendRequest)
+            val result = app.wallet().sendCoins(sendRequest)
             Log.d("MusicDao", "Wallet (2): successfully sent $coinsAmount to $publicKey")
-            true
+            result.tx.txId.toString()
         } catch (e: Exception) {
             Log.d("MusicDao", "Wallet (3): failed sending $coinsAmount to $publicKey")
-            false
+            null
         }
     }
 

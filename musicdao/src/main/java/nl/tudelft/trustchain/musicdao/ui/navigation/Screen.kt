@@ -34,4 +34,14 @@ sealed class Screen(val route: String) {
     }
 
     object CreateRelease : Screen("release/create")
+
+    object Server : Screen("server")
+
+    object ServerPayouts : Screen("server/payouts")
+
+    object ServerPayoutDetail : Screen("server/payouts/{payoutId}") {
+        fun createRoute(payoutId: String) = "server/payouts/$payoutId"
+    }
+
+    object ServerContributions : Screen("server/contributions")
 }

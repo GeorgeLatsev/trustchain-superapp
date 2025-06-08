@@ -10,7 +10,7 @@ import nl.tudelft.trustchain.musicdao.core.server.persistence.parser.Converters
 
 @Database(
     entities = [ArtistPayoutEntity::class, ContributionEntity::class, PayoutEntity::class],
-    version = 5,
+    version = 9,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

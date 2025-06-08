@@ -1,0 +1,23 @@
+package nl.tudelft.trustchain.musicdao.ui.screens.server
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
+import nl.tudelft.trustchain.musicdao.core.server.persistence.PayoutWithArtists
+import nl.tudelft.trustchain.musicdao.core.server.persistence.ServerDatabase
+import javax.inject.Inject
+
+@HiltViewModel
+class ServerPayoutsScreenViewModel
+@Inject
+constructor(
+    db: ServerDatabase
+) : ViewModel() {
+
+    val payoutsWithArtists: StateFlow<List<PayoutWithArtists>> =
+        db.payoutDao.getAllPayoutsWithArtists()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
+}

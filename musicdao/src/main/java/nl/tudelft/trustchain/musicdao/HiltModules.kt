@@ -61,6 +61,7 @@ class HiltModules {
             ServerDatabase::class.java,
             "musicdao-server-database"
         ).fallbackToDestructiveMigration()
+            .addTypeConverter(nl.tudelft.trustchain.musicdao.core.server.persistence.parser.Converters(GsonParser(Gson())))
             .build()
     }
 

@@ -71,7 +71,7 @@ class BitcoinWalletViewModel
             amount: String
         ): Boolean {
             val bitcoinPublicKey = artistRepository.getArtist(publicKey)?.bitcoinAddress ?: return false
-            return walletService.sendCoins(bitcoinPublicKey, amount)
+            return walletService.sendCoins(bitcoinPublicKey, amount) != null
         }
 
         companion object {
