@@ -35,7 +35,7 @@ class MusicCommunity(
     // has been received from peers
 
     val discoveredAddressesContacted: MutableMap<IPv4Address, Date> = mutableMapOf()
-    var isServer: Boolean = true
+    var isServer: Boolean = false
     var server: Peer? = null
 
     class Factory(
@@ -187,6 +187,7 @@ class MusicCommunity(
         }
 
         discoveredAddressesContacted[address] = Date()
+        Log.i("Discovered Addresses", "Discovered addresses contacted: ${discoveredAddressesContacted.keys.joinToString(", ")}")
     }
 
     override fun onPacket(packet: Packet) {
@@ -201,9 +202,9 @@ class MusicCommunity(
                 Log.i("Got Introduction Req", "Received introduction request from ${packet.source}")
 
                 val (peer, payload) = packet.getAuthPayload(IntroductionRequestPayload.Deserializer)
-                Log.i("Introduction Request", "Received from: ${peer.address} (${payload})")
+                Log.i("Here is Introduction Request", "Received from: ${peer.address} (${payload})")
                 if (payload.extraBytes.contentEquals(byteArrayOf(0x01))) {
-                    Log.i("found server", "Found server: ${peer.address} (${peer.mid})")
+                    Log.i("Found Server", "Found server: ${peer.address} (${peer.mid})")
                     server = peer
                 } else if (payload.extraBytes.contentEquals(byteArrayOf(0x02)) && server != null) {
                     val globalTime = claimGlobalTime()
@@ -224,23 +225,17 @@ class MusicCommunity(
         }
 
         if (isServer) {
-            val data = packet.data
+            Log.i("Got Introduction Req Server", "Received introduction request from ${packet.source}")
 
-            val msgId = data[prefix.size].toUByte().toInt()
+            val (peer, payload) = packet.getAuthPayload(IntroductionRequestPayload.Deserializer)
+            Log.i("Introduction Request Server", "Received from: ${peer.address} (${payload})")
 
-            if (msgId == nl.tudelft.ipv8.Community.MessageId.INTRODUCTION_REQUEST) {
-                Log.i("Got Introduction Req Server", "Received introduction request from ${packet.source}")
-
-                val (peer, payload) = packet.getAuthPayload(IntroductionRequestPayload.Deserializer)
-                Log.i("Introduction Request Server", "Received from: ${peer.address} (${payload})")
-
-                val extraBytes: ByteArray = byteArrayOf(0x01)
-                val packetNew = createIntroductionRequest(peer.address, extraBytes)
-                if (!discoveredAddressesContacted.containsKey(peer.address)) {
-                    send(peer.address, packetNew)
-                    Log.i("I am the server someone asked about me", "Hello slave: ${peer.address} (${peer.mid})")
-                    discoveredAddressesContacted[peer.address] = Date()
-                }
+            val extraBytes: ByteArray = byteArrayOf(0x01)
+            val packetNew = createIntroductionRequest(peer.address, extraBytes)
+            if (!discoveredAddressesContacted.containsKey(peer.address)) {
+                send(peer.address, packetNew)
+                Log.i("I am the server someone asked about me", "Hello slave: ${peer.address} (${peer.mid})")
+                discoveredAddressesContacted[peer.address] = Date()
             }
         }
     }
