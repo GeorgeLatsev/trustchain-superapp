@@ -68,7 +68,7 @@ fun MinimizedPlayer(
                                 style = MaterialTheme.typography.button.merge(SpanStyle(fontWeight = FontWeight.Bold))
                             )
                             Text(
-                                track?.artist?.uppercase() ?: "SONG ARTIST",
+                                track?.artist?.substringBefore("|")?.uppercase() ?: "SONG ARTIST",
                                 style = MaterialTheme.typography.button.merge(SpanStyle(fontWeight = FontWeight.Normal))
                             )
                         }
