@@ -43,5 +43,13 @@ sealed class Screen(val route: String) {
         fun createRoute(payoutId: String) = "server/payouts/$payoutId"
     }
 
+    object CreateRelease : Screen("release/create")
+
+    object Contribute : Screen("contribute")
+
+    object NewContributionRoute : Screen("contribute/new")
+    
+    object ListeningStats : Screen("listening_stats")
+    
     object ServerContributions : Screen("server/contributions")
 }
