@@ -25,6 +25,7 @@ import nl.tudelft.trustchain.musicdao.core.ipv8.MusicCommunity
 import nl.tudelft.trustchain.musicdao.core.ipv8.blocks.listenActivity.ListenActivityBlockRepository
 import nl.tudelft.trustchain.musicdao.core.repositories.model.Artist
 import nl.tudelft.trustchain.musicdao.core.util.TrustChainHelper
+import nl.tudelft.trustchain.musicdao.core.wallet.WalletService
 import nl.tudelft.trustchain.musicdao.ui.screens.wallet.BitcoinWalletViewModel
 import java.util.*;
 
@@ -35,7 +36,8 @@ class ContributeViewModel
         private val artistRepository: ArtistRepository,
         private val contributionRepository: ContributionRepository,
 //        val contributionPool: ContributionPool
-        private val listenActivityBlockRepository: ListenActivityBlockRepository
+        private val listenActivityBlockRepository: ListenActivityBlockRepository,
+        private val walletService: WalletService
     ) : ViewModel() {
 
     private val _isRefreshing: MutableLiveData<Boolean> = MutableLiveData()
@@ -103,7 +105,12 @@ class ContributeViewModel
             }
 
             sharePerArtist.forEach() { artist ->
-                contributionPool.value.addContribution(artist.key, amount * artist.value)
+                val share = amount * artist.value
+                contributionPool.value.addContribution(artist.key, share)
+//                walletService.sendCoins(musicCommunity.server?.publicKey.toString(), share.toString())
+                walletService.sendCoins("server-bitcoin-address", share.toString())
+
+                // add logic for sending the contribution itself to the server as well
             }
 
             val id = UUID.randomUUID().toString()
