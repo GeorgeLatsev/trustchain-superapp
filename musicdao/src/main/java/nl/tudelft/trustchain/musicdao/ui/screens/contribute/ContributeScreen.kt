@@ -25,7 +25,6 @@ import nl.tudelft.trustchain.musicdao.core.ipv8.MusicCommunity
 import nl.tudelft.trustchain.musicdao.ui.SnackbarHandler.coroutineScope
 import nl.tudelft.trustchain.musicdao.ui.components.EmptyState
 import nl.tudelft.trustchain.musicdao.ui.navigation.Screen
-import nl.tudelft.trustchain.musicdao.ui.screens.dao.DaoViewModel
 import nl.tudelft.trustchain.musicdao.ui.screens.profileMenu.CustomMenuItem
 import nl.tudelft.trustchain.musicdao.ui.screens.wallet.BitcoinWalletViewModel
 
@@ -35,7 +34,6 @@ fun ContributeScreen(
     navController: NavController,
     contributeViewModel: ContributeViewModel,
     bitcoinWalletViewModel: BitcoinWalletViewModel,
-//    contributionPool: ContributionPool
 ) {
     val isRefreshing by contributeViewModel.isRefreshing.observeAsState(false)
     val refreshState = rememberSwipeRefreshState(isRefreshing)
@@ -50,11 +48,6 @@ fun ContributeScreen(
     fun bla() {
         coroutineScope?.launch {
             contributeViewModel.contributionPool.value.distributePooledContributions(bitcoinWalletViewModel)
-
-//            // iterate over contributeViewMode.contributions
-//            contributions.forEach { contribution ->
-//                contributeViewModel.contributionPool.value.updateFlushedContributions(contribution)
-//            }
             contributeViewModel.contributionPool.value.updateFlushedContributions()
 
             val serializedPool = contributeViewModel.contributionPool.value.serialize()
@@ -67,8 +60,6 @@ fun ContributeScreen(
             musicCommunity.createProposalBlock("contribution-pool", poolTransaction, myPeer.publicKey.keyToBin())
 
             contributeViewModel.refresh()
-
-//            contributeViewModel.clearContributions()
         }
     }
 

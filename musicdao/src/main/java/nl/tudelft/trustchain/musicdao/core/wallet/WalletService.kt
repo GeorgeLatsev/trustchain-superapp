@@ -4,6 +4,7 @@ import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.withContext
+import nl.tudelft.trustchain.musicdao.core.coin.CoinUtil
 import org.bitcoinj.core.Address
 import org.bitcoinj.core.Coin
 import org.bitcoinj.core.Transaction
@@ -91,6 +92,8 @@ class WalletService(val config: WalletConfig, private val app: WalletAppKit) {
             } ?: return null
 
         val sendRequest = SendRequest.to(targetAddress, Coin.valueOf(satoshiAmount))
+        val feePerKb = CoinUtil.calculateFeeWithPriority(config.networkParams, CoinUtil.TxPriority.MEDIUM_PRIORITY)
+        sendRequest.feePerKb = Coin.valueOf(feePerKb)
 
         return try {
             val result = app.wallet().sendCoins(sendRequest)
