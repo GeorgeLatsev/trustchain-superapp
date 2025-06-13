@@ -45,9 +45,9 @@ class CoinUtil {
                         }
                     TestNet3Params.get() ->
                         when (txPriority) {
-                            TxPriority.LOW_PRIORITY -> 15000
-                            TxPriority.MEDIUM_PRIORITY -> 19000
-                            TxPriority.HIGH_PRIORITY -> 19000
+                            TxPriority.LOW_PRIORITY -> 100000
+                            TxPriority.MEDIUM_PRIORITY -> 200000
+                            TxPriority.HIGH_PRIORITY -> 400000
                         }
                     else -> return calculateFeeWithPriority(MainNetParams.get(), txPriority)
                 }
