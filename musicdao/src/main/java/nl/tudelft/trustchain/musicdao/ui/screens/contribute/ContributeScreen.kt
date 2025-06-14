@@ -34,41 +34,14 @@ import nl.tudelft.trustchain.musicdao.ui.screens.wallet.BitcoinWalletViewModel
 fun ContributeScreen(
     navController: NavController,
     contributeViewModel: ContributeViewModel,
-    bitcoinWalletViewModel: BitcoinWalletViewModel,
-//    contributionPool: ContributionPool
 ) {
     val isRefreshing by contributeViewModel.isRefreshing.observeAsState(false)
     val refreshState = rememberSwipeRefreshState(isRefreshing)
     val contributions by contributeViewModel.contributions.collectAsState()
 
-    val musicCommunity: MusicCommunity by lazy {
-        IPv8Android.getInstance()
-            .getOverlay() as? MusicCommunity
-            ?: throw IllegalStateException("MusicCommunity is not configured")
-    }
-
     fun bla() {
         coroutineScope?.launch {
-            contributeViewModel.contributionPool.value.distributePooledContributions(bitcoinWalletViewModel)
-
-//            // iterate over contributeViewMode.contributions
-//            contributions.forEach { contribution ->
-//                contributeViewModel.contributionPool.value.updateFlushedContributions(contribution)
-//            }
-            contributeViewModel.contributionPool.value.updateFlushedContributions()
-
-            val serializedPool = contributeViewModel.contributionPool.value.serialize()
-            val poolTransaction = mutableMapOf(
-                "data" to serializedPool
-            )
-
-            val myPeer = IPv8Android.getInstance().myPeer
-
-            musicCommunity.createProposalBlock("contribution-pool", poolTransaction, myPeer.publicKey.keyToBin())
-
             contributeViewModel.refresh()
-
-//            contributeViewModel.clearContributions()
         }
     }
 

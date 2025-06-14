@@ -30,8 +30,6 @@ fun ContributeCreateScreen(
     val amount = rememberSaveable { mutableStateOf("0.1") }
     val coroutine = rememberCoroutineScope()
 
-    val context = LocalContext.current
-
     fun send() {
         val amountFloat = amount.value.toFloat()
 
@@ -49,14 +47,8 @@ fun ContributeCreateScreen(
 
         coroutine.launch {
             val result = contributeViewModel.contribute(amountFloat)
-//            if (result) {
-            if (result) {
-//                contributeViewModel.createContribution(
-//                    amount.value.toLong(),
-//                    context
-//                )
-//
 
+            if (result) {
                 contributeViewModel.refresh()
 
                 SnackbarHandler.displaySnackbar("Contribution created")
