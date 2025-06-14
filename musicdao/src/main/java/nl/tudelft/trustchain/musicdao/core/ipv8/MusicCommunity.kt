@@ -12,7 +12,6 @@ import nl.tudelft.ipv8.attestation.trustchain.TrustChainBlock
 import nl.tudelft.ipv8.attestation.trustchain.TrustChainCommunity
 import nl.tudelft.ipv8.attestation.trustchain.TrustChainCrawler
 import nl.tudelft.ipv8.attestation.trustchain.TrustChainSettings
-import nl.tudelft.ipv8.attestation.trustchain.TrustChainTransaction
 import nl.tudelft.ipv8.attestation.trustchain.store.TrustChainStore
 import nl.tudelft.ipv8.keyvault.PublicKey
 import nl.tudelft.ipv8.keyvault.defaultCryptoProvider
@@ -20,7 +19,6 @@ import nl.tudelft.ipv8.messaging.Packet
 import nl.tudelft.ipv8.messaging.payload.IntroductionRequestPayload
 import nl.tudelft.ipv8.util.hexToBytes
 import nl.tudelft.ipv8.util.toHex
-import nl.tudelft.trustchain.musicdao.core.ipv8.blocks.listenActivity.ListenActivityBlock
 import java.util.*
 import kotlin.math.log
 
@@ -148,26 +146,6 @@ class MusicCommunity(
     object MessageId {
         const val KEYWORD_SEARCH_MESSAGE = 10
         const val SWARM_HEALTH_MESSAGE = 11
-    }
-
-    fun appendListenActivityBlock(artistId: String, trackId: String, listenedMillis: Long): Boolean {
-        if (listenedMillis <= 0L) return false
-
-        val transaction = mapOf(
-            "artistId" to artistId,
-            "trackId" to trackId,
-            "listenedMillis" to listenedMillis
-        )
-
-        // self-signed block = sign it with your own public key
-        val block = createProposalBlock(
-            blockType = ListenActivityBlock.BLOCK_TYPE,
-            transaction = transaction,
-            publicKey = myPeer.publicKey.keyToBin() // self-signed
-        )
-
-        Log.i("MusicCommunity", "Appended listen_activity block: ${block.transaction}")
-        return true
     }
 
     override fun walkTo(address: IPv4Address) {
