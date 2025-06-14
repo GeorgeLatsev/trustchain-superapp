@@ -8,7 +8,7 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import nl.tudelft.trustchain.musicdao.core.server.persistence.entities.PayoutEntity
+import nl.tudelft.trustchain.musicdao.core.node.persistence.entities.PayoutEntity
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Card

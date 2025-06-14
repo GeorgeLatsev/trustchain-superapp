@@ -94,15 +94,6 @@ fun ContributeScreen(
                         }
                     }
                 }
-
-                Spacer(modifier = Modifier.padding(8.dp))
-
-                CustomMenuItem(
-                    text = "Distribute pooled contributions",
-                    onClick = {
-                        bla()
-                    }
-                )
             }
         }
     }

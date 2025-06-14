@@ -105,6 +105,56 @@ class WalletService(val config: WalletConfig, private val app: WalletAppKit) {
         }
     }
 
+    fun sendCoinsMulti(addressAmount: Map<String, Float>): String? {
+        val tx = Transaction(config.networkParams)
+        val outputs = mutableListOf<Pair<Address, Long>>()
+
+        for ((address, amount) in addressAmount) {
+            try {
+                val targetAddress = Address.fromString(config.networkParams, address)
+                val satoshiAmount = (amount.toBigDecimal() * SATS_PER_BITCOIN).toLong()
+                outputs.add(targetAddress to satoshiAmount)
+            } catch (e: Exception) {
+                Log.d("MusicDao", "Wallet (4): failed to parse $address")
+                continue
+            }
+        }
+
+        if (outputs.isEmpty()) return null
+
+        outputs.forEach { (address, amount) ->
+            tx.addOutput(Coin.valueOf(amount), address)
+        }
+
+        try {
+            val sendRequest = SendRequest.forTx(tx)
+            val feePerKb = CoinUtil.calculateFeeWithPriority(config.networkParams, CoinUtil.TxPriority.MEDIUM_PRIORITY)
+            sendRequest.feePerKb = Coin.valueOf(feePerKb)
+
+            app.wallet().completeTx(sendRequest)
+
+            val fee = sendRequest.feePerKb.longValue()
+            val originalTotal = outputs.sumOf { it.second }
+
+            tx.clearOutputs()
+            outputs.forEach { (address, originalAmount) ->
+                val adjustedAmount = ((originalAmount.toDouble() / originalTotal) * (originalTotal - fee)).toLong()
+                tx.addOutput(Coin.valueOf(adjustedAmount), address)
+            }
+
+            val adjustedRequest = SendRequest.forTx(tx)
+            adjustedRequest.ensureMinRequiredFee = true
+            app.wallet().completeTx(adjustedRequest)
+
+            val result = app.wallet().sendCoins(adjustedRequest)
+            Log.d("MusicDao", "Wallet (5): successfully sent multiple coins")
+            return result.tx.txId.toString()
+        } catch (e: Exception) {
+            Log.d("MusicDao", "Wallet (6): failed sending multiple coins", e)
+            return null
+        }
+    }
+
     /**
      * Query the faucet to the default protocol address
      * @return whether request was successfully or not

@@ -28,7 +28,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import nl.tudelft.ipv8.android.IPv8Android
 import nl.tudelft.trustchain.musicdao.core.coin.*
-import nl.tudelft.trustchain.musicdao.core.server.persistence.ServerDatabase
+import nl.tudelft.trustchain.musicdao.core.node.persistence.ServerDatabase
 import java.nio.file.Path
 import java.nio.file.Paths
 import javax.inject.Named
@@ -61,7 +61,7 @@ class HiltModules {
             ServerDatabase::class.java,
             "musicdao-server-database"
         ).fallbackToDestructiveMigration()
-            .addTypeConverter(nl.tudelft.trustchain.musicdao.core.server.persistence.parser.Converters(GsonParser(Gson())))
+            .addTypeConverter(nl.tudelft.trustchain.musicdao.core.node.persistence.parser.Converters(GsonParser(Gson())))
             .build()
     }
 

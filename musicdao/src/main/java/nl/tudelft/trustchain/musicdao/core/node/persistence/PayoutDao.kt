@@ -1,17 +1,15 @@
-package nl.tudelft.trustchain.musicdao.core.server.persistence
+package nl.tudelft.trustchain.musicdao.core.node.persistence
 
 import androidx.room.Dao
-import androidx.room.Embedded
-import androidx.room.Relation
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
-import nl.tudelft.trustchain.musicdao.core.server.persistence.entities.ArtistPayoutEntity
-import nl.tudelft.trustchain.musicdao.core.server.persistence.entities.ContributionEntity
-import nl.tudelft.trustchain.musicdao.core.server.persistence.entities.PayoutEntity
-import nl.tudelft.trustchain.musicdao.core.server.persistence.entities.PayoutWithArtists
+import nl.tudelft.trustchain.musicdao.core.node.persistence.entities.ArtistPayoutEntity
+import nl.tudelft.trustchain.musicdao.core.node.persistence.entities.ContributionEntity
+import nl.tudelft.trustchain.musicdao.core.node.persistence.entities.PayoutEntity
+import nl.tudelft.trustchain.musicdao.core.node.persistence.entities.PayoutWithArtists
 
 @Dao
 interface PayoutDao {
@@ -115,7 +113,6 @@ interface PayoutDao {
     @Query("SELECT * FROM PayoutEntity ORDER BY createdAt DESC")
     fun getAllPayouts(): Flow<List<PayoutEntity>>
 
-    @Transaction
     @Query("SELECT * FROM PayoutEntity ORDER BY createdAt DESC")
     fun getAllPayoutsWithArtists(): Flow<List<PayoutWithArtists>>
 
@@ -130,4 +127,7 @@ interface PayoutDao {
 
     @Query("UPDATE PayoutEntity SET payoutStatus = :newStatus WHERE id = :payoutId")
     suspend fun updatePayoutStatus(payoutId: String, newStatus: PayoutEntity.PayoutStatus)
+
+    @Query("SELECT * FROM PayoutEntity WHERE id = :payoutId")
+    fun getPayoutWithArtistsById(payoutId: String): PayoutWithArtists
 }

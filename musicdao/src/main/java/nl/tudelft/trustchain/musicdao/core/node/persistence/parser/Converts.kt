@@ -1,9 +1,8 @@
-package nl.tudelft.trustchain.musicdao.core.server.persistence.parser
+package nl.tudelft.trustchain.musicdao.core.node.persistence.parser
 
 import androidx.room.ProvidedTypeConverter
 import androidx.room.TypeConverter
 import com.google.common.reflect.TypeToken
-import nl.tudelft.trustchain.musicdao.core.cache.entities.SongEntity
 import nl.tudelft.trustchain.musicdao.core.cache.parser.JsonParser
 
 @ProvidedTypeConverter

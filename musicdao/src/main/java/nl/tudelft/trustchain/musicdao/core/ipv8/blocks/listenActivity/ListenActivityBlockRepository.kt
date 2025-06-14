@@ -27,4 +27,14 @@ constructor(
                 artist to (millis / 60000.0)
             } ?: emptyMap()
     }
+
+    fun clearListenActivityData() {
+        val dir = File(context.filesDir, "artist_listening_data")
+        if (dir.exists()) {
+            dir.listFiles()?.forEach { it.delete() }
+            Log.d("ListenActivityRepo", "Cleared listen activity data")
+        } else {
+            Log.d("ListenActivityRepo", "No listen activity data to clear")
+        }
+    }
 }

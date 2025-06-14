@@ -1,4 +1,4 @@
-package nl.tudelft.trustchain.musicdao.core.server.persistence.entities
+package nl.tudelft.trustchain.musicdao.core.node.persistence.entities
 
 import androidx.room.Entity
 import androidx.room.ForeignKey

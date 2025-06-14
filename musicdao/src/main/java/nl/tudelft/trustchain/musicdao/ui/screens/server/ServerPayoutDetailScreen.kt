@@ -19,8 +19,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import nl.tudelft.trustchain.musicdao.core.server.persistence.entities.ArtistPayoutEntity
-import nl.tudelft.trustchain.musicdao.core.server.persistence.entities.ContributionEntity
+import nl.tudelft.trustchain.musicdao.core.node.persistence.entities.ArtistPayoutEntity
+import nl.tudelft.trustchain.musicdao.core.node.persistence.entities.ContributionEntity
 
 @ExperimentalMaterialApi
 @Composable
@@ -88,7 +88,7 @@ fun ArtistPayoutsList(payouts: List<ArtistPayoutEntity>) {
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("Artist: ${payout.artistAddress}", style = MaterialTheme.typography.body1)
-                    Text("Amount Paid: ${payout.payoutAmount} sats")
+                    Text("Amount: ${payout.payoutAmount} sats")
                 }
             }
         }

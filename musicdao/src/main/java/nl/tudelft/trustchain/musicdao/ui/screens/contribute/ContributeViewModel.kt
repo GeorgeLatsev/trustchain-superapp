@@ -1,5 +1,6 @@
 package nl.tudelft.trustchain.musicdao.ui.screens.contribute
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,6 +22,7 @@ import nl.tudelft.ipv8.attestation.trustchain.TrustChainSettings
 import nl.tudelft.ipv8.attestation.trustchain.store.TrustChainStore
 import nl.tudelft.trustchain.musicdao.core.contribute.Contribution
 import nl.tudelft.trustchain.musicdao.core.contribute.ContributionRepository
+import nl.tudelft.trustchain.musicdao.core.ipv8.ContributionMessage
 import nl.tudelft.trustchain.musicdao.core.ipv8.MusicCommunity
 import nl.tudelft.trustchain.musicdao.core.ipv8.blocks.listenActivity.ListenActivityBlockRepository
 import nl.tudelft.trustchain.musicdao.core.repositories.model.Artist
@@ -35,7 +37,6 @@ class ContributeViewModel
     constructor(
         private val artistRepository: ArtistRepository,
         private val contributionRepository: ContributionRepository,
-//        val contributionPool: ContributionPool
         private val listenActivityBlockRepository: ListenActivityBlockRepository,
         private val walletService: WalletService
     ) : ViewModel() {
@@ -52,22 +53,11 @@ class ContributeViewModel
     private val _listenActivity: MutableStateFlow<Map<String, Double>> = MutableStateFlow(mapOf())
     val listenActivity: StateFlow<Map<String, Double>> = _listenActivity
 
-//    private val contributionPool = ContributionPool
-
-    private fun getTrustChainCommunity(): TrustChainCommunity {
-        return IPv8Android.getInstance().getOverlay()
-            ?: throw IllegalStateException("TrustChainCommunity is not configured")
-    }
-
     private val musicCommunity: MusicCommunity by lazy {
         IPv8Android.getInstance()
             .getOverlay() as? MusicCommunity
             ?: throw IllegalStateException("MusicCommunity is not configured")
     }
-
-//    private val trustchain: TrustChainHelper by lazy {
-//        TrustChainHelper(trustchainCommunity)
-//    }
 
     init {
         viewModelScope.launch {
@@ -96,22 +86,32 @@ class ContributeViewModel
     fun contribute(amount: Float): Boolean {
         _listenActivity.value = listenActivityBlockRepository.getMinutesPerArtist()
 
-//        val artists = artistRepository.getArtists()
-
         if (listenActivity.value.isNotEmpty()) {
             val totalListenedTime = listenActivity.value.values.sum()
+
+            val txid = musicCommunity.getPayoutNodeWalletAddress()
+                ?.let { walletService.sendCoins(it, amount.toString()) }
+
+            if (txid == null) {
+                Log.e("ContributeViewModel", "Failed to send coins")
+                return false
+            }
+
             val sharePerArtist = listenActivity.value.mapValues { (_, minutes) ->
                 (minutes / totalListenedTime).toFloat()
             }
+            listenActivityBlockRepository.clearListenActivityData()
 
-            sharePerArtist.forEach() { artist ->
-                val share = amount * artist.value
-                contributionPool.value.addContribution(artist.key, share)
-//                walletService.sendCoins(musicCommunity.server?.publicKey.toString(), share.toString())
-                walletService.sendCoins("server-bitcoin-address", share.toString())
+            musicCommunity.sendContributionToPayoutNode(ContributionMessage(txid, sharePerArtist))
 
-                // add logic for sending the contribution itself to the server as well
-            }
+//            sharePerArtist.forEach() { artist ->
+//                val share = amount * artist.value
+//                contributionPool.value.addContribution(artist.key, share)
+////                walletService.sendCoins(musicCommunity.server?.publicKey.toString(), share.toString())
+//                walletService.sendCoins("server-bitcoin-address", share.toString())
+//
+//                // add logic for sending the contribution itself to the server as well
+//            }
 
             val id = UUID.randomUUID().toString()
 

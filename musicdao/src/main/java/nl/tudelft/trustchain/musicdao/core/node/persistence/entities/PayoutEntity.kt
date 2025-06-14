@@ -1,4 +1,4 @@
-package nl.tudelft.trustchain.musicdao.core.server.persistence.entities
+package nl.tudelft.trustchain.musicdao.core.node.persistence.entities
 
 import androidx.room.Embedded
 import androidx.room.Entity
@@ -17,16 +17,7 @@ data class PayoutEntity(
         COLLECTING,
         AWAITING_FOR_CONFIRMATION,
         SUBMITTED,
-        COMPLETED;
-
-        fun next(): PayoutStatus? {
-            return when (this) {
-                COLLECTING -> AWAITING_FOR_CONFIRMATION
-                AWAITING_FOR_CONFIRMATION -> SUBMITTED
-                SUBMITTED -> COMPLETED
-                COMPLETED -> null
-            }
-        }
+        COMPLETED
     }
 }
 

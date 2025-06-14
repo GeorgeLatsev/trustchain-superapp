@@ -86,6 +86,7 @@ class MusicActivity : AppCompatActivity() {
             // download creative common music metadata
             val magnetUri = getString(R.string.bootstrap_cc_music_metadata);
             torrentEngine.download(magnetUri);
+            Log.d("MusicActivity", "Downloading CC music metadata from: $magnetUri")
         }
         iterativelyFetchReleases()
         Intent(this, MusicGossipingService::class.java).also { intent ->

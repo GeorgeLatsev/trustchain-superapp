@@ -3,7 +3,7 @@ package nl.tudelft.trustchain.musicdao.ui.screens.server
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
-import nl.tudelft.trustchain.musicdao.core.server.PayoutManager
+import nl.tudelft.trustchain.musicdao.core.node.PayoutManager
 import nl.tudelft.trustchain.musicdao.core.wallet.WalletService
 import javax.inject.Inject
 import javax.inject.Named
@@ -16,9 +16,12 @@ constructor(
     private val walletService: WalletService,
     @Named("serverWallet") private val serverWalletService: WalletService
 ) : ViewModel() {
-    suspend fun seversome() {
-        Log.e("aaaaa", "server")
-        server.a()
+
+    val isEnabled: Boolean
+        get() = server.isEnabled()
+
+    fun enablePayoutNode() {
+        server.setIsEnabled(true)
     }
 
     suspend fun test() {
