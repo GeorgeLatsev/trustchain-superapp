@@ -35,7 +35,6 @@ import com.google.accompanist.navigation.animation.composable
 import nl.tudelft.trustchain.musicdao.ui.screens.contribute.ContributeCreateScreen
 import nl.tudelft.trustchain.musicdao.ui.screens.contribute.ContributeScreen
 import nl.tudelft.trustchain.musicdao.ui.screens.contribute.ContributeViewModel
-import nl.tudelft.trustchain.musicdao.ui.screens.contribute.ContributionPool
 import nl.tudelft.trustchain.musicdao.ui.screens.debug.DebugScreenViewModel
 import nl.tudelft.trustchain.musicdao.ui.screens.profile.EditProfileScreen
 import nl.tudelft.trustchain.musicdao.ui.screens.profile.ListeningStatsScreen
@@ -136,8 +135,7 @@ fun AppNavigation(
             composable(Screen.Contribute.route) {
                 ContributeScreen(
                     navController = navController,
-                    contributeViewModel = contributeViewModel,
-                    bitcoinWalletViewModel = bitcoinWalletViewModel,
+                    contributeViewModel = contributeViewModel
                 )
             }
 

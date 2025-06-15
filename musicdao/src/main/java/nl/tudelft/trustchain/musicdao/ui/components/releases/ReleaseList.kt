@@ -70,7 +70,7 @@ fun ReleaseListItem(
         secondaryText = {
             Row {
                 Text(
-                    text = "Album - ${album.artist}",
+                    text = "Album - ${album.artist.substringBefore("|")}",
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )

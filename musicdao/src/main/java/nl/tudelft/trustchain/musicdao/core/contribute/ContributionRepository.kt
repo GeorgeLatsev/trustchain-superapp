@@ -17,28 +17,21 @@ class ContributionRepository
     @Inject
     constructor(
         private val musicCommunity: MusicCommunity,
-        private val artistRepository: ArtistRepository
     ) {
-    val stateFlows: MutableMap<String, MutableStateFlow<Contribution?>> = mutableMapOf()
 
     suspend fun getContribution(publicKey: String): Contribution? {
         return getOrCrawl(publicKey)?.let { toContribution(it) }
     }
 
-    suspend fun getContributions(): List<Contribution> {
+    fun getContributions(): List<Contribution> {
         val blocks = musicCommunity.database.getBlocksWithType("contribute-proposal")
             .sortedByDescending { it.sequenceNumber }
 
         return blocks.map { toContribution(it) }
     }
 
-    private suspend fun toContribution(block: TrustChainBlock): Contribution {
-//        val artistStr = block.transaction["artists"] as String
-//        val artist_pks = artistStr.split("@").map { it.trim() }
-
+    private fun toContribution(block: TrustChainBlock): Contribution {
         val artists = block.transaction["artists"] as List<String>
-
-//        val artists = artist_pks.mapNotNull { artistRepository.getArtist(it) }
 
         return Contribution(
             id = block.transaction["id"] as String,
@@ -47,7 +40,7 @@ class ContributionRepository
         )
     }
 
-    suspend fun getOrCrawl(publicKey: String): TrustChainBlock? {
+    private suspend fun getOrCrawl(publicKey: String): TrustChainBlock? {
         val block = get(publicKey)
         return if (block != null) {
             block

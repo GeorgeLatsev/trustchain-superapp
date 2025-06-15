@@ -84,7 +84,7 @@ fun ReleaseScreen(
         playerViewModel.playDownloadingTrack(
             Song(
                 file = track.file,
-                artist = track.artist,
+                artist = track.artist.substringBefore("|"),
                 title = track.title
             ),
             context,
@@ -163,7 +163,7 @@ fun ReleaseScreen(
 
                         ListItem(
                             text = { Text(it.title, color = isPlayingModifier, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                            secondaryText = { Text(it.artist, color = isPlayingModifier) },
+                            secondaryText = { Text(it.artist.substringBefore("|"), color = isPlayingModifier) },
                             trailing = {
                                 Icon(
                                     imageVector = Icons.Default.MoreVert,
@@ -181,7 +181,7 @@ fun ReleaseScreen(
                                 text = { Text(it.title) },
                                 secondaryText = {
                                     Column {
-                                        Text(album.artist, modifier = Modifier.padding(bottom = 5.dp))
+                                        Text(album.artist.substringBefore("|"), modifier = Modifier.padding(bottom = 5.dp))
                                         LinearProgressIndicator(progress = it.progress.toFloat() / 100)
                                     }
                                 },
@@ -233,7 +233,7 @@ fun Header(
             modifier = Modifier.padding(bottom = 5.dp)
         )
         Text(
-            album.artist,
+            album.artist.substringBefore("|"),
             style = MaterialTheme.typography.body2.merge(SpanStyle(fontWeight = FontWeight.SemiBold)),
             modifier = Modifier.padding(bottom = 5.dp)
         )
