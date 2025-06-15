@@ -35,7 +35,6 @@ import com.google.accompanist.navigation.animation.composable
 import nl.tudelft.trustchain.musicdao.ui.screens.contribute.ContributeCreateScreen
 import nl.tudelft.trustchain.musicdao.ui.screens.contribute.ContributeScreen
 import nl.tudelft.trustchain.musicdao.ui.screens.contribute.ContributeViewModel
-import nl.tudelft.trustchain.musicdao.ui.screens.dao.*
 import nl.tudelft.trustchain.musicdao.ui.screens.debug.DebugScreenViewModel
 import nl.tudelft.trustchain.musicdao.ui.screens.profile.EditProfileScreen
 import nl.tudelft.trustchain.musicdao.ui.screens.profile.ListeningStatsScreen
@@ -54,10 +53,7 @@ fun AppNavigation(
     ownProfileViewScreenModel: MyProfileScreenViewModel
 ) {
     val bitcoinWalletViewModel: BitcoinWalletViewModel = hiltViewModel()
-    val daoViewModel: DaoViewModel = hiltViewModel()
     val contributeViewModel: ContributeViewModel = hiltViewModel()
-
-    daoViewModel.initManager()
 
     AnimatedNavHost(
         modifier = Modifier.fillMaxSize(),
@@ -121,12 +117,6 @@ fun AppNavigation(
                 val settingsScreenViewModel: SettingsScreenViewModel = hiltViewModel()
                 SettingsScreen(settingsScreenViewModel)
             }
-            composable(Screen.DaoRoute.route) {
-                DaoListScreen(navController = navController, daoViewModel = daoViewModel)
-            }
-            composable(Screen.NewDaoRoute.route) {
-                DaoCreateScreen(daoViewModel = daoViewModel, navController = navController)
-            }
             composable(Screen.CreateRelease.route) {
                 CreateReleaseDialog(navController = navController)
             }
@@ -142,58 +132,6 @@ fun AppNavigation(
                 ContributeCreateScreen(
                     bitcoinWalletViewModel = bitcoinWalletViewModel,
                     contributeViewModel = contributeViewModel,
-                    navController = navController
-                )
-            }
-
-            composable(
-                Screen.DaoDetailRoute.route,
-                arguments =
-                    listOf(
-                        navArgument("daoId") {
-                            type = NavType.StringType
-                        }
-                    )
-            ) { navBackStackEntry ->
-                DaoDetailScreen(
-                    navController = navController,
-                    daoId =
-                        navBackStackEntry.arguments?.getString(
-                            "daoId"
-                        )!!,
-                    daoViewModel = daoViewModel
-                )
-            }
-            composable(
-                Screen.ProposalDetailRoute.route,
-                arguments =
-                    listOf(
-                        navArgument("proposalId") {
-                            type = NavType.StringType
-                        }
-                    )
-            ) { navBackStackEntry ->
-                ProposalDetailScreen(
-                    navBackStackEntry.arguments?.getString(
-                        "proposalId"
-                    )!!,
-                    daoViewModel = daoViewModel
-                )
-            }
-            composable(
-                Screen.NewProposalRoute.route,
-                arguments =
-                    listOf(
-                        navArgument("daoId") {
-                            type = NavType.StringType
-                        }
-                    )
-            ) { navBackStackEntry ->
-                ProposalCreateScreen(
-                    navBackStackEntry.arguments?.getString(
-                        "daoId"
-                    )!!,
-                    daoViewModel = daoViewModel,
                     navController = navController
                 )
             }

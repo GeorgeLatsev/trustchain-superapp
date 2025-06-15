@@ -33,22 +33,6 @@ sealed class Screen(val route: String) {
         fun createRoute(publicKey: String) = "profile/$publicKey/donate"
     }
 
-    object DaoRoute : Screen("DaoRoute")
-
-    object DaoDetailRoute : Screen("dao/{daoId}/detail") {
-        fun createRoute(daoId: String) = "dao/$daoId/detail"
-    }
-
-    object ProposalDetailRoute : Screen("proposal/{proposalId}/detail") {
-        fun createRoute(proposalId: String) = "proposal/$proposalId/detail"
-    }
-
-    object NewProposalRoute : Screen("proposal/{daoId}/new") {
-        fun createRoute(daoId: String) = "proposal/$daoId/new"
-    }
-
-    object NewDaoRoute : Screen("dao/new")
-
     object CreateRelease : Screen("release/create")
 
     object Contribute : Screen("contribute")
