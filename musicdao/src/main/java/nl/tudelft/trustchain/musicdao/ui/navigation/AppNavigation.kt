@@ -32,8 +32,12 @@ import nl.tudelft.trustchain.musicdao.ui.screens.wallet.BitcoinWalletScreen
 import nl.tudelft.trustchain.musicdao.ui.screens.wallet.BitcoinWalletViewModel
 import com.google.accompanist.navigation.animation.AnimatedNavHost
 import com.google.accompanist.navigation.animation.composable
+import nl.tudelft.trustchain.musicdao.ui.screens.contribute.ContributeCreateScreen
+import nl.tudelft.trustchain.musicdao.ui.screens.contribute.ContributeScreen
+import nl.tudelft.trustchain.musicdao.ui.screens.contribute.ContributeViewModel
 import nl.tudelft.trustchain.musicdao.ui.screens.debug.DebugScreenViewModel
 import nl.tudelft.trustchain.musicdao.ui.screens.profile.EditProfileScreen
+import nl.tudelft.trustchain.musicdao.ui.screens.profile.ListeningStatsScreen
 import nl.tudelft.trustchain.musicdao.ui.screens.profile.MyProfileScreen
 import nl.tudelft.trustchain.musicdao.ui.screens.profile.MyProfileScreenViewModel
 import nl.tudelft.trustchain.musicdao.ui.screens.profile.ProfileScreen
@@ -49,6 +53,7 @@ fun AppNavigation(
     ownProfileViewScreenModel: MyProfileScreenViewModel
 ) {
     val bitcoinWalletViewModel: BitcoinWalletViewModel = hiltViewModel()
+    val contributeViewModel: ContributeViewModel = hiltViewModel()
 
     AnimatedNavHost(
         modifier = Modifier.fillMaxSize(),
@@ -85,6 +90,9 @@ fun AppNavigation(
             composable(Screen.BitcoinWallet.route) {
                 BitcoinWalletScreen(bitcoinWalletViewModel = bitcoinWalletViewModel)
             }
+            composable(Screen.ListeningStats.route) {
+                ListeningStatsScreen()
+            }
             composable(
                 Screen.Donate.route,
                 arguments =
@@ -111,6 +119,21 @@ fun AppNavigation(
             }
             composable(Screen.CreateRelease.route) {
                 CreateReleaseDialog(navController = navController)
+            }
+
+            composable(Screen.Contribute.route) {
+                ContributeScreen(
+                    navController = navController,
+                    contributeViewModel = contributeViewModel
+                )
+            }
+
+            composable(Screen.NewContributionRoute.route) {
+                ContributeCreateScreen(
+                    bitcoinWalletViewModel = bitcoinWalletViewModel,
+                    contributeViewModel = contributeViewModel,
+                    navController = navController
+                )
             }
 
             composable(

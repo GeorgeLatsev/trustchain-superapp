@@ -10,6 +10,7 @@ import androidx.lifecycle.ViewModelProvider
 import nl.tudelft.trustchain.musicdao.core.repositories.model.Song
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
+import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.source.MediaSource
 import com.google.android.exoplayer2.source.ProgressiveMediaSource
 import com.google.android.exoplayer2.upstream.DataSource
@@ -27,6 +28,51 @@ class PlayerViewModel(context: Context) : ViewModel() {
 
     val exoPlayer by lazy {
         ExoPlayer.Builder(context).build()
+    }
+
+    private var appDir: File? = context.filesDir
+    private var currentArtist: String? = null
+    private var startTime: Long = 0L
+    private var endTime: Long = 0L
+
+    init {
+        exoPlayer.addListener(object : Player.Listener {
+            override fun onPlaybackStateChanged(state: Int) {
+                Log.d("ExoPlayerListener", "Playback state changed: $state")
+            }
+
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                Log.d("ExoPlayerListener", "Is playing: $isPlaying")
+                if (isPlaying) {
+                    startTime = System.currentTimeMillis()
+                } else {
+                    endTime = System.currentTimeMillis()
+                    val duration = endTime - startTime
+                    Log.d("ExoPlayerListener", "Track played for: $duration ms by $currentArtist")
+                    updateListenActivity(currentArtist, duration)
+                }
+            }
+        })
+    }
+
+    private fun updateListenActivity(artist: String?, duration: Long) {
+        if (artist == null) return
+
+        val dir = File(appDir, "artist_listening_data")
+        if (!dir.exists()) {
+            dir.mkdirs() // Create the directory if it doesn't exist
+        }
+
+        val artistFile = File(dir, "$artist.txt")
+        val previousDuration = if (artistFile.exists()) {
+            artistFile.readText().toLongOrNull() ?: 0L
+        } else {
+            0L
+        }
+        val totalDuration = previousDuration + duration
+        artistFile.writeText(totalDuration.toString())
+        Log.d("StatsUpdate", "Artist file path: ${artistFile.absolutePath}")
+        Log.d("StatsUpdate", "Updated listening time for $artist: $totalDuration ms")
     }
 
     private fun buildMediaSource(
@@ -54,6 +100,7 @@ class PlayerViewModel(context: Context) : ViewModel() {
         exoPlayer.setMediaItem(mediaItem)
         exoPlayer.prepare()
         exoPlayer.play()
+        currentArtist = track.artist
     }
 
     fun playDownloadingTrack(
@@ -71,6 +118,7 @@ class PlayerViewModel(context: Context) : ViewModel() {
         exoPlayer.setMediaSource(mediaSource)
         exoPlayer.prepare()
         exoPlayer.play()
+        currentArtist = track.artist
     }
 
     fun release() {

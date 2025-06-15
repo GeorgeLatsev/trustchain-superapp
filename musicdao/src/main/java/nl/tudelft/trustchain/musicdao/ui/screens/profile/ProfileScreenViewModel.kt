@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
 class ProfileScreenViewModel
     @AssistedInject
     constructor(
-        @Assisted private val publicKey: String,
+        @Assisted val publicKey: String,
         private val artistRepository: ArtistRepository
     ) : ViewModel() {
         private val _profile: MutableStateFlow<Artist?> = MutableStateFlow(null)

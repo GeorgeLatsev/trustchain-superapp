@@ -28,7 +28,8 @@ import nl.tudelft.trustchain.musicdao.ui.navigation.Screen
 fun Profile(
     artist: Artist,
     releases: List<Album> = listOf(),
-    navController: NavController
+    navController: NavController,
+    myPublicKey: String
 ) {
     Column(
         modifier =
@@ -62,6 +63,14 @@ fun Profile(
                 }
                 OutlinedButton(onClick = { navController.navigate(Screen.Donate.createRoute(publicKey = artist.publicKey)) }) {
                     Text(text = "Donate")
+                }
+                if (artist.publicKey == myPublicKey) {
+                    OutlinedButton(
+                        onClick = { navController.navigate(Screen.ListeningStats.route) },
+                        modifier = Modifier.padding(end = 10.dp)
+                    ) {
+                        Text(text = "View Listening Stats")
+                    }
                 }
             }
 

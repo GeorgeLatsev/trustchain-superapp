@@ -21,7 +21,7 @@ fun MyProfileScreen(
     val profile = profileScreenViewModel.profile.collectAsState()
 
     profile.value?.let {
-        Profile(it, navController = navController)
+        Profile(it, navController = navController, myPublicKey = profileScreenViewModel.publicKey())
     } ?: Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         EmptyState(
             firstLine = "You have not made a profile yet.",
