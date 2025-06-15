@@ -5,7 +5,7 @@ import android.util.Log
 import com.google.common.base.Joiner
 import nl.tudelft.ipv8.util.hexToBytes
 import nl.tudelft.ipv8.util.toHex
-import nl.tudelft.trustchain.musicdao.core.dao.CoinCommunity.Companion.DEFAULT_BITCOIN_MAX_TIMEOUT
+import nl.tudelft.trustchain.musicdao.core.coin.CoinCommunity.Companion.DEFAULT_BITCOIN_MAX_TIMEOUT
 import nl.tudelft.trustchain.musicdao.core.util.taproot.CTransaction
 import nl.tudelft.trustchain.musicdao.core.util.taproot.CTxInWitness
 import nl.tudelft.trustchain.musicdao.core.util.taproot.CTxWitness

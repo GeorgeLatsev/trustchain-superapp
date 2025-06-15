@@ -1,4 +1,4 @@
-package nl.tudelft.trustchain.musicdao.core.dao
+package nl.tudelft.trustchain.musicdao.core.coin
 
 import nl.tudelft.ipv8.Community
 
