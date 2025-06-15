@@ -98,6 +98,9 @@ dependencies {
     // Testing
     testImplementation "io.mockk:mockk:$mockk_version"
     testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutines_version"
+    testImplementation "junit:junit:$junit_version"
+    testImplementation "com.goterl:lazysodium-java:5.1.1"
+    testImplementation "net.java.dev.jna:jna:5.13.0"
 
     // Reading MP3 metadata
     api 'com.mpatric:mp3agic:0.9.1'
