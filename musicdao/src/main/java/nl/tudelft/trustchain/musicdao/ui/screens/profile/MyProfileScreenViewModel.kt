@@ -9,6 +9,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import nl.tudelft.trustchain.musicdao.core.contribute.PayoutService
+import nl.tudelft.trustchain.musicdao.core.node.PayoutManager
 import javax.inject.Inject
 
 @HiltViewModel
@@ -17,12 +19,23 @@ class MyProfileScreenViewModel
     constructor(
         private val artistRepository: ArtistRepository,
         private val musicCommunity: MusicCommunity,
+        private val payoutService: PayoutService,
+        private val payoutManager: PayoutManager,
     ) : ViewModel() {
         private val _profile: MutableStateFlow<Artist?> = MutableStateFlow(null)
         var profile: StateFlow<Artist?> = _profile
 
+        val isNodeFound = payoutService.isNodeFound
+        val nodeAddress = payoutService.nodeAddress
+
         fun publicKey(): String {
             return musicCommunity.publicKeyHex()
+        }
+
+        fun enablePayoutNode() {
+            if (!payoutManager.isEnabled()) {
+                payoutManager.enable()
+            }
         }
 
         suspend fun publishEdit(

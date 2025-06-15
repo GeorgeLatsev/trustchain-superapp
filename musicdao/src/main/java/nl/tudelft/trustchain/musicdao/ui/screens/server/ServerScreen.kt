@@ -21,16 +21,6 @@ fun ServerScreen(
     val coroutine = rememberCoroutineScope()
 
     Column {
-        if (!serverScreenViewModel.isEnabled) {
-            ListItem(
-                text = { Text(text = "Enable payout node") },
-                modifier = Modifier.clickable {
-                    coroutine.launch {
-                        serverScreenViewModel.enablePayoutNode()
-                    }
-                }
-            )
-        }
         ListItem(
             text = { Text(text = "Payouts") },
             modifier = Modifier.clickable {

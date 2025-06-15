@@ -14,15 +14,9 @@ class ServerScreenViewModel
 constructor(
     private val server: PayoutManager,
     private val walletService: WalletService,
-    @Named("serverWallet") private val serverWalletService: WalletService
+    @Named("payoutWallet")
+    private val serverWalletService: WalletService,
 ) : ViewModel() {
-
-    val isEnabled: Boolean
-        get() = server.isEnabled()
-
-    fun enablePayoutNode() {
-        server.setIsEnabled(true)
-    }
 
     suspend fun test() {
 

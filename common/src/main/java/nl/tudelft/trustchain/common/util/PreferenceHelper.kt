@@ -3,7 +3,6 @@ package nl.tudelft.trustchain.common.util
 import androidx.preference.PreferenceManager
 import android.content.SharedPreferences
 import android.content.Context
-import androidx.core.content.edit
 
 object PreferenceHelper {
     private lateinit var prefs: SharedPreferences

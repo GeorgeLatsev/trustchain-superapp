@@ -24,7 +24,7 @@ class PayoutManager
 constructor(
     private val database: ServerDatabase,
     private val walletService: WalletService,
-    @Named("serverWallet")
+    @Named("payoutWallet")
     private val serverWalletService: WalletService,
     @ApplicationContext
     val context: Context
@@ -47,13 +47,11 @@ constructor(
         return prefs.getBoolean(PREF_KEY_IS_NODE_ENABLED, false)
     }
 
-    fun setIsEnabled(isEnabled: Boolean) {
+    fun enable() {
         val prefs = PreferenceManager.getDefaultSharedPreferences(context)
-        prefs.edit { putBoolean(PREF_KEY_IS_NODE_ENABLED, isEnabled) }
-        if (isEnabled) {
-            Log.d("PayoutManager", "PayoutManager enabled, initializing")
-            init()
-        }
+        prefs.edit { putBoolean(PREF_KEY_IS_NODE_ENABLED, true) }
+        Log.d("PayoutManager", "PayoutManager enabled, initializing")
+        init()
     }
 
     private fun init() {

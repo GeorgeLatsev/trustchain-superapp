@@ -1,7 +1,6 @@
-package nl.tudelft.trustchain.musicdao.core.ipv8
+package nl.tudelft.trustchain.musicdao.core.ipv8.modules.contribution
 
 import nl.tudelft.ipv8.messaging.*
-import java.util.*
 
 class ContributionMessage(
     val txid: String,

@@ -19,6 +19,7 @@ import nl.tudelft.ipv8.messaging.Serializable
 import nl.tudelft.ipv8.messaging.payload.IntroductionRequestPayload
 import nl.tudelft.ipv8.util.hexToBytes
 import nl.tudelft.ipv8.util.toHex
+import nl.tudelft.trustchain.common.util.InMemoryCache
 import java.util.*
 import nl.tudelft.trustchain.common.util.PreferenceHelper
 import nl.tudelft.trustchain.musicdao.core.node.PREF_KEY_IS_NODE_ENABLED
@@ -111,7 +112,7 @@ class MusicCommunity(
     }
 
     /**
-     * Filter local databse to find a release block that matches a certain title or artist, using
+     * Filter local database to find a release block that matches a certain title or artist, using
      * keyword search
      */
     @SuppressLint("NewApi")
@@ -187,11 +188,13 @@ class MusicCommunity(
             super.walkTo(address)
         }
 
-        discoveredAddressesContacted[address] = Date()
-        Log.i(
-            "MusicCommunity",
-            "Discovered addresses contacted: ${discoveredAddressesContacted.keys.joinToString(", ")}"
-        )
+        if (isPayoutNodeEnabled()) {
+            discoveredAddressesContacted [address] = Date()
+            Log.i(
+                "MusicCommunity",
+                "Discovered addresses contacted: ${discoveredAddressesContacted.keys.joinToString(", ")}"
+            )
+        }
     }
 
     override fun onPacket(packet: Packet) {
@@ -203,8 +206,6 @@ class MusicCommunity(
             val msgId = data[prefix.size].toUByte().toInt()
 
             if (msgId == MessageId.INTRODUCTION_REQUEST) {
-                Log.i("MusicCommunity", "Received introduction request from ${packet.source}")
-
                 val (peer, payload) = packet.getAuthPayload(IntroductionRequestPayload.Deserializer)
                 Log.i("MusicCommunity", "Received from: ${peer.address} (${payload})")
                 if (payload.extraBytes.isNotEmpty() && payload.extraBytes[0] == IntroductionExtraBytes.IS_PAYOUT_NODE) {
@@ -217,19 +218,18 @@ class MusicCommunity(
                     )
 
                     _payoutNodePeer = peer
+                    InMemoryCache.put(PREF_KEY_NODE_BITCOIN_ADDRESS, address)
+
                     if (_onPayoutNodePeerFound != null) {
                         _onPayoutNodePeerFound!!(peer, address)
                     }
-                } else if (
-                    !isPayoutNodeEnabled()
-                    && payload.extraBytes.contentEquals(byteArrayOf(IntroductionExtraBytes.IS_LOOKING_FOR_PAYOUT_NODE))
+                } else if (payload.extraBytes.contentEquals(byteArrayOf(IntroductionExtraBytes.IS_LOOKING_FOR_PAYOUT_NODE))
                     && _payoutNodePeer != null
-                    && PreferenceHelper.get(PREF_KEY_NODE_BITCOIN_ADDRESS, "") != ""
                 ) {
                     val globalTime = claimGlobalTime()
 
                     val prefix: Byte = IntroductionExtraBytes.IS_PAYOUT_NODE
-                    val addressBytes: ByteArray = PreferenceHelper.get(PREF_KEY_NODE_BITCOIN_ADDRESS, "").toByteArray(Charsets.UTF_8)
+                    val addressBytes: ByteArray = (InMemoryCache.get(PREF_KEY_NODE_BITCOIN_ADDRESS) as String).toByteArray(Charsets.UTF_8)
 
                     val extraBytes: ByteArray = byteArrayOf(prefix) + addressBytes
 
@@ -256,27 +256,27 @@ class MusicCommunity(
             }
         }
 
-        if (isPayoutNodeEnabled()) {
+        if (isPayoutNodeEnabled() && packet.source is IPv4Address) {
             Log.i(
                 "MusicCommunity (PAYOUT_NODE)",
                 "Received introduction request from ${packet.source}"
             )
 
-            val (peer, payload) = packet.getAuthPayload(IntroductionRequestPayload.Deserializer)
-            Log.i("MusicCommunity (PAYOUT_NODE)", "Received from: ${peer.address} (${payload})")
+            val peerAddress = packet.source as IPv4Address;
+            Log.i("MusicCommunity (PAYOUT_NODE)", "Received from: ${peerAddress} (${packet})")
 
             val prefix: Byte = IntroductionExtraBytes.IS_PAYOUT_NODE
-            val addressBytes: ByteArray = PreferenceHelper.get(PREF_KEY_NODE_BITCOIN_ADDRESS, "").toByteArray(Charsets.UTF_8)
+            val addressBytes: ByteArray = (InMemoryCache.get(PREF_KEY_NODE_BITCOIN_ADDRESS) as String).toByteArray(Charsets.UTF_8)
 
             val extraBytes: ByteArray = byteArrayOf(prefix) + addressBytes
-            val packetNew = createIntroductionRequest(peer.address, extraBytes)
-            if (!discoveredAddressesContacted.containsKey(peer.address)) {
-                send(peer.address, packetNew)
+            val packetNew = createIntroductionRequest(peerAddress, extraBytes)
+            if (!discoveredAddressesContacted.containsKey(peerAddress)) {
+                send(peerAddress, packetNew)
                 Log.i(
                     "MusicCommunity (PAYOUT_NODE)",
-                    "Someone asked about the node: ${peer.address} (${peer.mid})"
+                    "Someone asked about the node: ${peerAddress}"
                 )
-                discoveredAddressesContacted[peer.address] = Date()
+                discoveredAddressesContacted[peerAddress] = Date()
             }
         }
     }

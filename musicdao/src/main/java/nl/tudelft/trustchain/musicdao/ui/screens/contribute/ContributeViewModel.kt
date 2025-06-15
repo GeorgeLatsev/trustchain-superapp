@@ -1,6 +1,5 @@
 package nl.tudelft.trustchain.musicdao.ui.screens.contribute
 
-import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -8,7 +7,6 @@ import nl.tudelft.trustchain.musicdao.core.repositories.ArtistRepository
 import javax.inject.Inject
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,20 +14,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import nl.tudelft.ipv8.android.IPv8Android
-import nl.tudelft.ipv8.attestation.trustchain.TrustChainBlock
-import nl.tudelft.ipv8.attestation.trustchain.TrustChainCommunity
-import nl.tudelft.ipv8.attestation.trustchain.TrustChainSettings
-import nl.tudelft.ipv8.attestation.trustchain.store.TrustChainStore
 import nl.tudelft.trustchain.musicdao.core.contribute.Contribution
 import nl.tudelft.trustchain.musicdao.core.contribute.ContributionRepository
-import nl.tudelft.trustchain.musicdao.core.ipv8.ContributionMessage
 import nl.tudelft.trustchain.musicdao.core.ipv8.MusicCommunity
 import nl.tudelft.trustchain.musicdao.core.ipv8.blocks.listenActivity.ListenActivityBlockRepository
-import nl.tudelft.trustchain.musicdao.core.repositories.model.Artist
-import nl.tudelft.trustchain.musicdao.core.util.TrustChainHelper
 import nl.tudelft.trustchain.musicdao.core.wallet.WalletService
-import nl.tudelft.trustchain.musicdao.ui.screens.wallet.BitcoinWalletViewModel
-import java.util.*;
 
 @HiltViewModel
 class ContributeViewModel
@@ -72,6 +61,21 @@ class ContributeViewModel
 
         if (listenActivity.value.isNotEmpty()) {
             val totalListenedTime = listenActivity.value.values.sum()
+// TODO:
+//            val txid = musicCommunity.getPayoutNodeWalletAddress()
+//                ?.let { walletService.sendCoins(it, amount.toString()) }
+//
+//            if (txid == null) {
+//                Log.e("ContributeViewModel", "Failed to send coins")
+//                return false
+//            }
+//
+//            val sharePerArtist = listenActivity.value.mapValues { (_, minutes) ->
+//                (minutes / totalListenedTime).toFloat()
+//            }
+//            listenActivityBlockRepository.clearListenActivityData()
+//
+//            musicCommunity.sendContributionToPayoutNode(ContributionMessage(txid, sharePerArtist))
 
             val txid = musicCommunity.getPayoutNodeWalletAddress()
                 ?.let { walletService.sendCoins(it, amount.toString()) }
