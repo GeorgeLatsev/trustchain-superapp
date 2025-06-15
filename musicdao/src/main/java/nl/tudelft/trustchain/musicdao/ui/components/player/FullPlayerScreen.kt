@@ -49,7 +49,7 @@ fun FullPlayerScreen(playerViewModel: PlayerViewModel) {
                 modifier = Modifier.padding(bottom = 5.dp)
             )
             Text(
-                track?.artist ?: "",
+                track?.artist?.substringBefore("|") ?: "",
                 style = MaterialTheme.typography.body2.merge(SpanStyle(fontWeight = FontWeight.SemiBold)),
                 modifier = Modifier.padding(bottom = 5.dp)
             )
