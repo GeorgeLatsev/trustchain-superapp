@@ -74,14 +74,8 @@ class ContributeViewModel
             val sharePerArtist = listenActivity.value.mapValues { (_, minutes) ->
                 (minutes / totalListenedTime).toFloat()
             }
-            val id = UUID.randomUUID().toString()
-            val contribution = Contribution(
-                id = id,
-                amount = amount,
-                artists = sharePerArtist.keys.toList()
-            )
+
             val transaction = mutableMapOf(
-                "id" to id,
                 "amount" to amount,
                 "artists" to sharePerArtist.keys.toList()
             )
@@ -99,13 +93,20 @@ class ContributeViewModel
             }.toMap()
 
             val result = payoutService.makeContribution(amount, sharePerAddress)
-            if (result) {
+            if (result != null) {
                 musicCommunity.createProposalBlock("contribute-proposal", transaction, myPeer.publicKey.keyToBin())
                 listenActivityBlockRepository.clearListenActivityData()
+
+                val contribution = Contribution(
+                    txid = result,
+                    amount = amount,
+                    artists = sharePerArtist.keys.toList()
+                )
+
+                _contributions.value += contribution
             }
 
-            _contributions.value += contribution
-            return result
+            return result != null
         }
         return false
     }

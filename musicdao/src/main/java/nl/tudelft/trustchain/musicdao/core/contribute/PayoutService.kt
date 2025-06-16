@@ -48,10 +48,10 @@ constructor(
         }
     }
 
-    fun makeContribution(amount: Float, split: Map<String, Float>): Boolean {
+    fun makeContribution(amount: Float, split: Map<String, Float>): String? {
         if (isNodeFound.value.not() || payoutWalletAddress.isNullOrEmpty()) {
             Log.w("PayoutService", "No payout node found, cannot make contribution")
-            return false
+            return null
         }
 
         Log.i("PayoutService", "Making contribution: $amount, split: $split")
@@ -59,7 +59,7 @@ constructor(
         val txid = walletService.sendCoins(payoutWalletAddress!!, amount.toString())
         if (txid == null) {
             Log.e("PayoutService", "Failed to send coins for contribution")
-            return false
+            return null
         }
 
         val msg = ContributionMessage(
@@ -71,6 +71,6 @@ constructor(
         musicCommunity.sendPacketToPayoutNode(MusicCommunity.MessageId.CONTRIBUTION_MESSAGE, msg)
         Log.i("PayoutService", "Contribution sent: $msg")
 
-        return true
+        return txid
     }
 }

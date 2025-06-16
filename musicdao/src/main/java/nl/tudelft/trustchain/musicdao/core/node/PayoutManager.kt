@@ -10,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import nl.tudelft.ipv8.android.IPv8Android
 import nl.tudelft.trustchain.musicdao.core.ipv8.MusicCommunity
 import nl.tudelft.trustchain.musicdao.core.ipv8.modules.contribution.ContributionMessage
 import nl.tudelft.trustchain.musicdao.core.node.persistence.ServerDatabase
@@ -175,7 +176,26 @@ constructor(
                     Log.e("PayoutManager", "No artist payouts found for payout ID $payoutId")
                     return PayoutEntity.PayoutStatus.SUBMITTED
                 }
-                val txid = walletService.sendCoinsMulti(payout.artistPayouts.associate { it.artistAddress to it.payoutAmount.toFloat() }) // TODO: check limit and make multiple txes if needed
+
+                val artistSplits = payout.artistPayouts.associate { it.artistAddress to it.payoutAmount.toFloat() }
+                val txid = walletService.sendCoinsMulti(artistSplits)
+                val transactionIds = payout.payout.transactionsIds
+
+                val transaction = mutableMapOf(
+                    "payoutId" to payoutId,
+                    "payoutStatus" to status,
+                    "artistSplits" to artistSplits,
+                    "transactionIds" to transactionIds,
+                    "transactionId" to (txid ?: ""),
+                )
+
+                musicCommunity.createProposalBlock(
+                    "payoutStatusUpdate",
+                    transaction,
+                    IPv8Android.getInstance().myPeer.publicKey.keyToBin()
+                )
+
+                Log.i("PayoutManager", "Created proposal block for payout status update: $transaction")
 
                 if (txid != null) {
                     Log.d("PayoutManager", "Successfully sent payout for ID $payoutId with txid $txid")
