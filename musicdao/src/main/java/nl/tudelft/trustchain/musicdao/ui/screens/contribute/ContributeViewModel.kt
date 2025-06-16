@@ -75,11 +75,7 @@ class ContributeViewModel
                 (minutes / totalListenedTime).toFloat()
             }
 
-            val transaction = mutableMapOf(
-                "amount" to amount,
-                "artists" to sharePerArtist.keys.toList()
-            )
-            val myPeer = IPv8Android.getInstance().myPeer
+
 
             // Resolve addresses using suspend function
             val sharePerAddress = sharePerArtist.mapNotNull { (key, value) ->
@@ -94,14 +90,23 @@ class ContributeViewModel
 
             val result = payoutService.makeContribution(amount, sharePerAddress)
             if (result != null) {
-                musicCommunity.createProposalBlock("contribute-proposal", transaction, myPeer.publicKey.keyToBin())
-                listenActivityBlockRepository.clearListenActivityData()
+
 
                 val contribution = Contribution(
                     txid = result,
                     amount = amount,
                     artists = sharePerArtist.keys.toList()
                 )
+
+                val transaction = mutableMapOf(
+                    "txid" to result,
+                    "amount" to amount,
+                    "artists" to sharePerArtist.keys.toList()
+                )
+                val myPeer = IPv8Android.getInstance().myPeer
+
+                musicCommunity.createProposalBlock("contribute-proposal", transaction, myPeer.publicKey.keyToBin())
+                listenActivityBlockRepository.clearListenActivityData()
 
                 _contributions.value += contribution
             }
