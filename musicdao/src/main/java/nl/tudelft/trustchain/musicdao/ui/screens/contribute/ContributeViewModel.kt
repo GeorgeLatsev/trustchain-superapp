@@ -29,7 +29,7 @@ class ContributeViewModel
     constructor(
         private val contributionRepository: ContributionRepository,
         private val listenActivityBlockRepository: ListenActivityBlockRepository,
-        private val artistRepository: ArtistRepository,
+        val artistRepository: ArtistRepository,
         private val payoutService: PayoutService
     ) : ViewModel() {
 
