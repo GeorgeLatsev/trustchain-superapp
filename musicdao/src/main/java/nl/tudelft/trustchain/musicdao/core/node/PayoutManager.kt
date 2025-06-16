@@ -183,7 +183,7 @@ constructor(
 
                 val transaction = mutableMapOf(
                     "payoutId" to payoutId,
-                    "payoutStatus" to status,
+                    "payoutStatus" to status.toString(),
                     "artistSplits" to artistSplits,
                     "transactionIds" to transactionIds,
                     "transactionId" to (txid ?: ""),
