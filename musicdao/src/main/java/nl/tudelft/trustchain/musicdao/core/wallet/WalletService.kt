@@ -7,6 +7,7 @@ import kotlinx.coroutines.withContext
 import nl.tudelft.trustchain.musicdao.core.coin.CoinUtil
 import org.bitcoinj.core.Address
 import org.bitcoinj.core.Coin
+import org.bitcoinj.core.SegwitAddress
 import org.bitcoinj.core.Transaction
 import org.bitcoinj.core.listeners.DownloadProgressTracker
 import org.bitcoinj.kits.WalletAppKit
@@ -109,48 +110,61 @@ class WalletService(val config: WalletConfig, private val app: WalletAppKit) {
         val tx = Transaction(config.networkParams)
         val outputs = mutableListOf<Pair<Address, Long>>()
 
-        for ((address, amount) in addressAmount) {
+        for ((addressStr, amount) in addressAmount) {
             try {
-                val targetAddress = Address.fromString(config.networkParams, address)
-                val satoshiAmount = (amount.toBigDecimal() * SATS_PER_BITCOIN).toLong()
-                outputs.add(targetAddress to satoshiAmount)
+                val address = try {
+                    Address.fromString(config.networkParams, addressStr)
+                } catch (e: Exception) {
+                    SegwitAddress.fromBech32(config.networkParams, addressStr)
+                }
+                val satoshis = (amount.toBigDecimal() * SATS_PER_BITCOIN).toLong()
+                outputs.add(address to satoshis)
             } catch (e: Exception) {
-                Log.d("MusicDao", "Wallet (4): failed to parse $address")
-                continue
+                Log.w("MusicDao", "Invalid address: $addressStr")
             }
         }
 
         if (outputs.isEmpty()) return null
 
-        outputs.forEach { (address, amount) ->
-            tx.addOutput(Coin.valueOf(amount), address)
+        outputs.forEach { (address, satoshis) ->
+            tx.addOutput(Coin.valueOf(satoshis), address)
         }
 
         try {
             val sendRequest = SendRequest.forTx(tx)
             val feePerKb = CoinUtil.calculateFeeWithPriority(config.networkParams, CoinUtil.TxPriority.MEDIUM_PRIORITY)
             sendRequest.feePerKb = Coin.valueOf(feePerKb)
+            sendRequest.ensureMinRequiredFee = true
 
             app.wallet().completeTx(sendRequest)
 
-            val fee = sendRequest.feePerKb.longValue()
-            val originalTotal = outputs.sumOf { it.second }
+            val actualTx = sendRequest.tx
+            val fee = actualTx.inputSum.subtract(actualTx.outputSum)
 
-            tx.clearOutputs()
-            outputs.forEach { (address, originalAmount) ->
-                val adjustedAmount = ((originalAmount.toDouble() / originalTotal) * (originalTotal - fee)).toLong()
-                tx.addOutput(Coin.valueOf(adjustedAmount), address)
+            val totalOriginal = outputs.sumOf { it.second }
+            val feeLong = fee.value
+
+            if (feeLong > totalOriginal) {
+                Log.e("MusicDao", "Fee exceeds total amount.")
+                return null
             }
 
-            val adjustedRequest = SendRequest.forTx(tx)
+            val adjustedTx = Transaction(config.networkParams)
+            outputs.forEach { (address, originalAmount) ->
+                val adjusted = ((originalAmount.toDouble() / totalOriginal) * (totalOriginal - feeLong)).toLong()
+                adjustedTx.addOutput(Coin.valueOf(adjusted), address)
+            }
+
+            val adjustedRequest = SendRequest.forTx(adjustedTx)
+            adjustedRequest.feePerKb = Coin.valueOf(feePerKb)
             adjustedRequest.ensureMinRequiredFee = true
-            app.wallet().completeTx(adjustedRequest)
 
             val result = app.wallet().sendCoins(adjustedRequest)
-            Log.d("MusicDao", "Wallet (5): successfully sent multiple coins")
+            Log.i("MusicDao", "Transaction sent: ${result.tx.txId}")
             return result.tx.txId.toString()
+
         } catch (e: Exception) {
-            Log.d("MusicDao", "Wallet (6): failed sending multiple coins", e)
+            Log.e("MusicDao", "Error sending multi-output transaction", e)
             return null
         }
     }

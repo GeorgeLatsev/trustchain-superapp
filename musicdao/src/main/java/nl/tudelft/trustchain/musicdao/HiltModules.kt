@@ -132,9 +132,10 @@ class HiltModules {
     fun downloadFinishUseCase(
         database: CacheDatabase,
         cachePath: CachePath,
+        walletService: WalletService,
         @ApplicationContext applicationContext: Context
     ): DownloadFinishUseCase {
-        return DownloadFinishUseCase(database = database, cachePath = cachePath, context = applicationContext)
+        return DownloadFinishUseCase(database = database, cachePath = cachePath, walletService = walletService, context = applicationContext)
     }
 
     @Provides

@@ -27,6 +27,10 @@ import nl.tudelft.trustchain.musicdao.ui.components.EmptyState
 import nl.tudelft.trustchain.musicdao.ui.navigation.Screen
 import nl.tudelft.trustchain.musicdao.ui.screens.profileMenu.CustomMenuItem
 import nl.tudelft.trustchain.musicdao.ui.screens.wallet.BitcoinWalletViewModel
+import androidx.compose.runtime.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import nl.tudelft.trustchain.musicdao.core.repositories.ArtistRepository
 
 @ExperimentalMaterialApi
 @Composable
@@ -37,6 +41,7 @@ fun ContributeScreen(
     val isRefreshing by contributeViewModel.isRefreshing.observeAsState(false)
     val refreshState = rememberSwipeRefreshState(isRefreshing)
     val contributions by contributeViewModel.contributions.collectAsState()
+    val artistRepository = contributeViewModel.artistRepository
 
     fun bla() {
         coroutineScope?.launch {
@@ -71,7 +76,7 @@ fun ContributeScreen(
                 Column(modifier = Modifier.weight(1f)) {
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
                         items(contributions.size) { index ->
-                            ContributionItem(contribution = contributions[index])
+                            ContributionItem(contribution = contributions[index], artistRepository)
                         }
                     }
                 }
@@ -81,7 +86,25 @@ fun ContributeScreen(
 }
 
 @Composable
-fun ContributionItem(contribution: Contribution) {
+fun ContributionItem(
+    contribution: Contribution,
+    artistRepository: ArtistRepository
+) {
+    var artistNames by remember(contribution) { mutableStateOf<List<String>>(emptyList()) }
+
+    LaunchedEffect(contribution) {
+        val names = contribution.artists.map { key ->
+            if ('|' in key) {
+                key.substringBefore('|')
+            } else {
+                withContext(Dispatchers.IO) {
+                    artistRepository.getArtist(key)?.name ?: key
+                }
+            }
+        }
+        artistNames = names
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -90,7 +113,7 @@ fun ContributionItem(contribution: Contribution) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text("Amount: ${contribution.amount} BTC")
-            Text("Artists: ${contribution.artists.joinToString { it.substringBefore("|") }}")
+            Text("Artists: ${artistNames.joinToString()}")
         }
     }
 }

@@ -34,7 +34,7 @@ class ContributionRepository
         val artists = block.transaction["artists"] as List<String>
 
         return Contribution(
-            txid = block.transaction["txid"] as String,
+            txid = (block.transaction["txid"]?: block.publicKey.toHex()).toString(),
             amount = block.transaction["amount"] as Float,
             artists = artists
         )

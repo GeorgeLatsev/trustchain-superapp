@@ -16,12 +16,14 @@ import nl.tudelft.trustchain.musicdao.R
 import nl.tudelft.trustchain.musicdao.core.cache.CacheDatabase
 import nl.tudelft.trustchain.musicdao.core.cache.entities.AlbumEntity
 import nl.tudelft.trustchain.musicdao.core.cache.entities.SongEntity
+import nl.tudelft.trustchain.musicdao.core.wallet.WalletService
 import java.nio.file.Paths
 
 class DownloadFinishUseCase(
     private val database: CacheDatabase,
     private val cachePath: CachePath,
     private val context: Context,
+    private val walletService: WalletService
 ) {
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
 
@@ -110,7 +112,7 @@ class DownloadFinishUseCase(
         val sha256 = MessageDigest.getInstance("SHA-256")
         val seed = sha256.digest(input.toByteArray())
         val key = ECKey.fromPrivate(seed)
-        val params = MainNetParams.get()
+        val params = walletService.wallet().networkParameters
         return SegwitAddress.fromKey(params, key).toString()
     }
 }

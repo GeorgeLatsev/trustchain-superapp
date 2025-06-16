@@ -17,6 +17,7 @@ import nl.tudelft.trustchain.musicdao.core.node.persistence.ServerDatabase
 import nl.tudelft.trustchain.musicdao.core.node.persistence.entities.ContributionEntity
 import nl.tudelft.trustchain.musicdao.core.node.persistence.entities.PayoutEntity
 import nl.tudelft.trustchain.musicdao.core.wallet.WalletService
+import nl.tudelft.trustchain.musicdao.core.wallet.WalletService.Companion.SATS_PER_BITCOIN
 import org.bitcoinj.core.Address
 import org.bitcoinj.core.Transaction
 import javax.inject.Inject
@@ -176,6 +177,7 @@ constructor(
                     Log.e("PayoutManager", "No artist payouts found for payout ID $payoutId")
                     return PayoutEntity.PayoutStatus.SUBMITTED
                 }
+                val txid = payoutWalletService.sendCoinsMulti(payout.artistPayouts.associate { it.artistAddress to (it.payoutAmount.toFloat() / SATS_PER_BITCOIN.toFloat()) }) // TODO: check limit and make multiple txes if needed
 
                 val artistSplits = payout.artistPayouts.associate { it.artistAddress to it.payoutAmount.toFloat() }
                 val txid = walletService.sendCoinsMulti(artistSplits)
