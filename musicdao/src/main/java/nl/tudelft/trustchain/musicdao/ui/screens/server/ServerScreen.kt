@@ -33,5 +33,11 @@ fun ServerScreen(
                 navController.navigate(Screen.ServerContributions.route)
             }
         )
+        ListItem(
+            text = { Text(text = "Payout wallet") },
+            modifier = Modifier.clickable {
+                navController.navigate(Screen.NodeWallet.route)
+            }
+        )
     }
 }

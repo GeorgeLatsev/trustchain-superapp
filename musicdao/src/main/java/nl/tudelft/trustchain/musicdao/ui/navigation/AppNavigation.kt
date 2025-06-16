@@ -42,6 +42,8 @@ import nl.tudelft.trustchain.musicdao.ui.screens.profile.MyProfileScreen
 import nl.tudelft.trustchain.musicdao.ui.screens.profile.MyProfileScreenViewModel
 import nl.tudelft.trustchain.musicdao.ui.screens.profile.ProfileScreen
 import nl.tudelft.trustchain.musicdao.ui.screens.profileMenu.ProfileMenuScreen
+import nl.tudelft.trustchain.musicdao.ui.screens.server.NodeWalletScreen
+import nl.tudelft.trustchain.musicdao.ui.screens.server.NodeWalletViewModel
 import nl.tudelft.trustchain.musicdao.ui.screens.server.ServerContributionsScreen
 import nl.tudelft.trustchain.musicdao.ui.screens.server.ServerContributionsScreenViewModel
 import nl.tudelft.trustchain.musicdao.ui.screens.server.ServerPayoutDetailScreen
@@ -237,6 +239,12 @@ fun AppNavigation(
                 ServerContributionsScreen(
                     viewModel = serverContributionsScreenViewModel
                 )
+            }
+            composable(
+                Screen.NodeWallet.route,
+            ) {
+                val nodeBitcoinWalletViewModel = hiltViewModel<NodeWalletViewModel>()
+                NodeWalletScreen(bitcoinWalletViewModel = nodeBitcoinWalletViewModel)
             }
         }
     )

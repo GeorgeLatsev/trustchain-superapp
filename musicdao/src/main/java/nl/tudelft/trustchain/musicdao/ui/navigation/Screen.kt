@@ -50,4 +50,6 @@ sealed class Screen(val route: String) {
     object ListeningStats : Screen("listening_stats")
 
     object ServerContributions : Screen("server/contributions")
+
+    object NodeWallet : Screen("server/wallet")
 }
