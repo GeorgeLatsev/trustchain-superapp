@@ -72,14 +72,16 @@ fun ReleaseScreen(
 
     fun play(
         track: Song,
-        cover: File?
+        cover: File?,
+        album: Album
     ) {
-        playerViewModel.playDownloadedTrack(track, cover)
+        playerViewModel.playDownloadedTrack(track, cover, album)
     }
 
     fun play(
         track: DownloadingTrack,
-        cover: File?
+        cover: File?,
+        album: Album
     ) {
         playerViewModel.playDownloadingTrack(
             Song(
@@ -88,7 +90,8 @@ fun ReleaseScreen(
                 title = track.title
             ),
             context,
-            cover
+            cover,
+            album
         )
     }
 
@@ -108,7 +111,7 @@ fun ReleaseScreen(
                             ?: return@collect
 
                     if (!isPlaying && targetTrack.progress > 20 && targetTrack.progress < 99) {
-                        play(targetTrack, album.cover)
+                        play(targetTrack, album.cover, album)
                     }
                 }
             }
@@ -170,7 +173,7 @@ fun ReleaseScreen(
                                     contentDescription = null
                                 )
                             },
-                            modifier = Modifier.clickable { play(it, album.cover) }
+                            modifier = Modifier.clickable { play(it, album.cover, album) }
                         )
                     }
                 } else {
@@ -193,7 +196,7 @@ fun ReleaseScreen(
                                 },
                                 modifier =
                                     Modifier.clickable {
-                                        play(it, album.cover)
+                                        play(it, album.cover, album)
                                     }
                             )
                         }

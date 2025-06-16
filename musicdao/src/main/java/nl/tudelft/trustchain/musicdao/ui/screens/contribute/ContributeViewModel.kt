@@ -66,44 +66,37 @@ class ContributeViewModel
      * @param amount The amount to contribute.
      * @return True if the contribution was successful, false otherwise.
      */
-    fun contribute(amount: Float): Boolean {
+    suspend fun contribute(amount: Float): Boolean {
         _listenActivity.value = listenActivityBlockRepository.getMinutesPerArtist()
 
         if (listenActivity.value.isNotEmpty() && payoutService.isNodeFound.value) {
             val totalListenedTime = listenActivity.value.values.sum()
-
             val sharePerArtist = listenActivity.value.mapValues { (_, minutes) ->
                 (minutes / totalListenedTime).toFloat()
             }
-
             val id = UUID.randomUUID().toString()
-
-            // create a contribution object with a unique ID, amount, and artists
             val contribution = Contribution(
                 id = id,
                 amount = amount,
                 artists = sharePerArtist.keys.toList()
             )
-
-            val sharePerAddress = sharePerArtist.mapKeys { (key, _) ->
-                if ('|' in key) {
-                    key.substringAfter('|')
-                } else {
-                    Log.d("ContributeViewModel", "Getting artist from repository based on name ${artistRepository.getArtistByName(key)}")
-                    artistRepository.getArtistByName(key)?.bitcoinAddress
-                }
-            }.filterKeys {
-                it != null
-            }.mapKeys { it.key!! }
-
-            val myPeer = IPv8Android.getInstance().myPeer
-
-            // persist the contribution to the blockchain
             val transaction = mutableMapOf(
                 "id" to id,
                 "amount" to amount,
                 "artists" to sharePerArtist.keys.toList()
             )
+            val myPeer = IPv8Android.getInstance().myPeer
+
+            // Resolve addresses using suspend function
+            val sharePerAddress = sharePerArtist.mapNotNull { (key, value) ->
+                val address = if ('|' in key) {
+                    key.substringAfter('|')
+                } else {
+                    Log.d("ContributeViewModel", "Getting artist from repository based on name ${artistRepository.getArtist(key)}")
+                    artistRepository.getArtist(key)?.bitcoinAddress
+                }
+                address?.let { it to value }
+            }.toMap()
 
             val result = payoutService.makeContribution(amount, sharePerAddress)
             if (result) {
@@ -112,11 +105,12 @@ class ContributeViewModel
             }
 
             _contributions.value += contribution
-            return true
+            return result
         }
-
         return false
     }
+
+
 
     fun refresh() {
         viewModelScope.launch {

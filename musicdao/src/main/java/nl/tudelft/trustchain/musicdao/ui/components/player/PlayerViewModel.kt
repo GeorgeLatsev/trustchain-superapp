@@ -8,6 +8,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import nl.tudelft.trustchain.musicdao.core.repositories.model.Song
+import nl.tudelft.trustchain.musicdao.core.repositories.model.Album
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.Player
@@ -32,6 +33,7 @@ class PlayerViewModel(context: Context) : ViewModel() {
 
     private var appDir: File? = context.filesDir
     private var currentArtist: String? = null
+    private var currentArtistPublisher: String? = null
     private var startTime: Long = 0L
     private var endTime: Long = 0L
 
@@ -48,8 +50,13 @@ class PlayerViewModel(context: Context) : ViewModel() {
                 } else {
                     endTime = System.currentTimeMillis()
                     val duration = endTime - startTime
-                    Log.d("ExoPlayerListener", "Track played for: $duration ms by $currentArtist")
-                    updateListenActivity(currentArtist, duration)
+                    if (currentArtist!!.contains('|')){
+                        Log.d("ExoPlayerListener", "Track played for: $duration ms by $currentArtist")
+                        updateListenActivity(currentArtist, duration)
+                    } else {
+                        Log.d("ExoPlayerListener", "Track played for: $duration ms by $currentArtistPublisher")
+                        updateListenActivity(currentArtistPublisher, duration)
+                    }
                 }
             }
         })
@@ -89,7 +96,9 @@ class PlayerViewModel(context: Context) : ViewModel() {
 
     fun playDownloadedTrack(
         track: Song,
-        cover: File? = null
+        cover: File? = null,
+        album: Album
+
     ) {
         _playingTrack.value = track
         _coverFile.value = cover
@@ -101,12 +110,14 @@ class PlayerViewModel(context: Context) : ViewModel() {
         exoPlayer.prepare()
         exoPlayer.play()
         currentArtist = track.artist
+        currentArtistPublisher = album.publisher
     }
 
     fun playDownloadingTrack(
         track: Song,
         context: Context,
-        cover: File? = null
+        cover: File? = null,
+        album: Album
     ) {
         _playingTrack.value = track
         _coverFile.value = cover
@@ -119,6 +130,7 @@ class PlayerViewModel(context: Context) : ViewModel() {
         exoPlayer.prepare()
         exoPlayer.play()
         currentArtist = track.artist
+        currentArtistPublisher = album.publisher
     }
 
     fun release() {
