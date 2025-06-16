@@ -1,5 +1,6 @@
 package nl.tudelft.trustchain.musicdao.ui.navigation
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -68,18 +69,20 @@ fun Drawer(
             DropdownMenuItem(onClick = { navController.navigate(Screen.Debug.route) }) {
                 Text("Active Torrents")
             }
+            PayoutDropdownMenuItem(
+                navController = navController,
+                profileScreenViewModel = profileScreenViewModel
+            )
             DropdownMenuItem(onClick = { navController.navigate(Screen.Settings.route) }) {
                 Text("Settings")
             }
-            PayoutDropdownMenuItem(
-                profileScreenViewModel = profileScreenViewModel
-            )
         }
     }
 }
 
 @Composable
 fun PayoutDropdownMenuItem(
+    navController: NavController,
     profileScreenViewModel: MyProfileScreenViewModel
 ) {
     var tapCount by remember { mutableStateOf(0) }
@@ -120,6 +123,9 @@ fun PayoutDropdownMenuItem(
     DropdownMenuItem(
         onClick = {
             if (isNodeFound) {
+                if (nodeAddress == "0.0.0.0:0") {
+                    navController.navigate(Screen.Server.route)
+                }
                 return@DropdownMenuItem
             }
 

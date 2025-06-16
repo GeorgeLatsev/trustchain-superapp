@@ -159,15 +159,15 @@ class HiltModules {
     @Provides
     @Singleton
     @Named("payoutWallet")
-    fun provideServerWalletService(
+    fun providePayoutWalletService(
         @ApplicationContext applicationContext: Context,
-        @Named("serverWalletManager")
+        @Named("payoutWalletManager")
         walletManager: WalletManager
     ): WalletService {
         val walletService =  WalletService(
             WalletConfig(
                 networkParams = DEFAULT_NETWORK_PARAMS,
-                filePrefix = DEFAULT_FILE_PREFIX + "server_",
+                filePrefix = DEFAULT_FILE_PREFIX + "payout_",
                 cacheDir = Paths.get("${applicationContext.cacheDir}").toFile(),
                 regtestFaucetEndPoint = DEFAULT_FAUCET_ENDPOINT,
                 regtestBootstrapIp = DEFAULT_REGTEST_BOOTSTRAP_IP,
@@ -218,11 +218,11 @@ class HiltModules {
 
     @Provides
     @Singleton
-    @Named("serverWalletManager")
-    fun provideServerWalletManager(
+    @Named("payoutWalletManager")
+    fun providePayoutWalletManager(
         @ApplicationContext context: Context
     ): WalletManager {
-        val walletId = "server_wallet"
+        val walletId = "payout_wallet"
         Log.d("MVDAO", "INITIATING DAO MODULE.")
         if (WalletManagerAndroid.isInitialized(walletId)) {
             Log.d("MVDAO", "DAO MODULE ALREADY INITIALIZED, SKIPPING")
@@ -242,7 +242,7 @@ class HiltModules {
             .setWalletId(walletId)
             .init()
 
-        Log.d("MVDAO", "Server wallet manager: ${WalletManagerAndroid.getInstance(walletId)}")
+        Log.d("MVDAO", "Payout node wallet manager: ${WalletManagerAndroid.getInstance(walletId)}")
 
         return WalletManagerAndroid.getInstance(walletId)
     }

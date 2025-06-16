@@ -124,7 +124,6 @@ fun AppNavigation(
             composable(Screen.Settings.route) {
                 val settingsScreenViewModel: SettingsScreenViewModel = hiltViewModel()
                 SettingsScreen(
-                    navController = navController,
                     settingsScreenViewModel = settingsScreenViewModel
                 )
             }

@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import nl.tudelft.trustchain.musicdao.core.wallet.WalletService
 import nl.tudelft.trustchain.musicdao.core.ipv8.MusicCommunity
+import nl.tudelft.trustchain.musicdao.core.ipv8.modules.contribution.ContributionMessage
 import nl.tudelft.trustchain.musicdao.core.node.PayoutManager
 import javax.inject.Inject
 import javax.inject.Named
@@ -47,19 +48,29 @@ constructor(
         }
     }
 
-    fun makeContribution(
-        contribution: Contribution,
-    ) {
+    fun makeContribution(amount: Float, split: Map<String, Float>): Boolean {
         if (isNodeFound.value.not() || payoutWalletAddress.isNullOrEmpty()) {
             Log.w("PayoutService", "No payout node found, cannot make contribution")
-            return
+            return false
         }
 
-        Log.i("PayoutService", "Making contribution: $contribution")
-        val txid = walletService.sendCoins(payoutWalletAddress!!, contribution.amount.toString())
+        Log.i("PayoutService", "Making contribution: $amount, split: $split")
 
-        // make tx
-        // make signed contribution msg
-        // send contribution to node
+        val txid = walletService.sendCoins(payoutWalletAddress!!, amount.toString())
+        if (txid == null) {
+            Log.e("PayoutService", "Failed to send coins for contribution")
+            return false
+        }
+
+        val msg = ContributionMessage(
+            txid = txid,
+            artistSplits = split,
+        )
+        msg.signature = walletService.signMessage(msg.getSignableString()).toString()
+
+        musicCommunity.sendPacketToPayoutNode(MusicCommunity.MessageId.CONTRIBUTION_MESSAGE, msg)
+        Log.i("PayoutService", "Contribution sent: $msg")
+
+        return true
     }
 }

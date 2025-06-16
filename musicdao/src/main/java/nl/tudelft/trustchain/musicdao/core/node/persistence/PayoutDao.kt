@@ -44,6 +44,8 @@ interface PayoutDao {
     @Query("SELECT * FROM ArtistPayoutEntity WHERE payoutId = :payoutId")
     suspend fun getArtistPayoutsForPayoutId(payoutId: String): List<ArtistPayoutEntity>
 
+    @Query("SELECT * FROM ContributionEntity WHERE transactionHash = :txid AND status = 'UNVERIFIED'")
+    fun getUnverifiedContributionsByTransactionId(txid: String): List<ContributionEntity>
 
     suspend fun getCurrentCollectingPayoutId(): String? {
         return getPayoutIdByStatus(PayoutEntity.PayoutStatus.COLLECTING)
@@ -55,6 +57,9 @@ interface PayoutDao {
 
     @Query("SELECT id FROM PayoutEntity WHERE payoutStatus = :status LIMIT 1")
     suspend fun getPayoutIdByStatus(status: PayoutEntity.PayoutStatus): String?
+
+    @Query("SELECT payoutStatus FROM PayoutEntity WHERE id = :payoutId LIMIT 1")
+    suspend fun getPayoutStatus(payoutId: String): PayoutEntity.PayoutStatus?
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun createPayout(payout: PayoutEntity)
@@ -129,5 +134,5 @@ interface PayoutDao {
     suspend fun updatePayoutStatus(payoutId: String, newStatus: PayoutEntity.PayoutStatus)
 
     @Query("SELECT * FROM PayoutEntity WHERE id = :payoutId")
-    fun getPayoutWithArtistsById(payoutId: String): PayoutWithArtists
+    suspend fun getPayoutWithArtistsById(payoutId: String): PayoutWithArtists
 }

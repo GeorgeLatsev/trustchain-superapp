@@ -1,6 +1,5 @@
 package nl.tudelft.trustchain.musicdao.ui.screens.server
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import nl.tudelft.trustchain.musicdao.core.node.PayoutManager
@@ -18,18 +17,4 @@ constructor(
     private val serverWalletService: WalletService,
 ) : ViewModel() {
 
-    suspend fun test() {
-
-        val txId = walletService.sendCoins(serverWalletService.protocolAddress().toString(), "0.1");
-        if (txId == null) {
-            Log.e("ServerScreenViewModel", "Failed to send coins");
-            return;
-        }
-        server.registerContribution(
-            transactionHash = txId,
-            contributorAddress = walletService.protocolAddress().toString(),
-            signature = "test",
-            artistSplits = mapOf("test" to 0.5f, "test2" to 0.5f)
-        )
-    }
 }

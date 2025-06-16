@@ -229,7 +229,7 @@ class MusicCommunity(
                     val globalTime = claimGlobalTime()
 
                     val prefix: Byte = IntroductionExtraBytes.IS_PAYOUT_NODE
-                    val addressBytes: ByteArray = (InMemoryCache.get(PREF_KEY_NODE_BITCOIN_ADDRESS) as String).toByteArray(Charsets.UTF_8)
+                    val addressBytes: ByteArray = (InMemoryCache.get(PREF_KEY_NODE_BITCOIN_ADDRESS) as String).toByteArray(Charsets.UTF_8) // TODO: allow only if loaded
 
                     val extraBytes: ByteArray = byteArrayOf(prefix) + addressBytes
 
@@ -257,16 +257,15 @@ class MusicCommunity(
         }
 
         if (isPayoutNodeEnabled() && packet.source is IPv4Address) {
+            val peerAddress = packet.source as IPv4Address;
+
             Log.i(
                 "MusicCommunity (PAYOUT_NODE)",
-                "Received introduction request from ${packet.source}"
+                "Received message from ${peerAddress}"
             )
 
-            val peerAddress = packet.source as IPv4Address;
-            Log.i("MusicCommunity (PAYOUT_NODE)", "Received from: ${peerAddress} (${packet})")
-
             val prefix: Byte = IntroductionExtraBytes.IS_PAYOUT_NODE
-            val addressBytes: ByteArray = (InMemoryCache.get(PREF_KEY_NODE_BITCOIN_ADDRESS) as String).toByteArray(Charsets.UTF_8)
+            val addressBytes: ByteArray = (InMemoryCache.get(PREF_KEY_NODE_BITCOIN_ADDRESS) as String).toByteArray(Charsets.UTF_8) // TODO: allow only if loaded
 
             val extraBytes: ByteArray = byteArrayOf(prefix) + addressBytes
             val packetNew = createIntroductionRequest(peerAddress, extraBytes)
@@ -297,7 +296,7 @@ class MusicCommunity(
 
             messageHandlers[messageId]?.invoke(
                 Packet(myPeer.address, serializePacket(messageId, payload))
-            ) ?: run() {
+            ) ?: run {
                 Log.w(
                     "MusicCommunity (PAYOUT_NODE)",
                     "No handler registered for message ID: $messageId"
@@ -333,47 +332,4 @@ class MusicCommunity(
     ) {
         messageHandlers[messageId] = handler
     }
-
-    // TODO: move
-//    fun getPayoutNodeWalletAddress(): String? {
-//        if (isPayoutNodeEnabled()) {
-//            return walletService.protocolAddress().toString()
-//        }
-//        return _payoutNodeWalletAddress
-//    }
-//
-//    fun sendContributionToPayoutNode(contribution: ContributionMessage): Boolean {
-//        if (isPayoutNodeEnabled()) {
-//            Log.i("MusicCommunity", "Sent contribution to payout node (self): $contribution")
-//            scope.launch {
-//                Log.d("MusicCommunity", "Received contribution: $contribution")
-//                payoutManager.registerContribution(
-//                    contribution.txid,
-//                    "TODO",
-//                    "TODO",
-//                    contribution.artistSplits
-//                )
-//            }
-//            return true
-//        }
-//
-//        val peer = server ?: return false
-//        send(peer, serializePacket(MessageId.CONTRIBUTION_MESSAGE, contribution))
-//
-//        Log.i("MusicCommunity", "Sent contribution to payout node: $contribution")
-//        return true
-//    }
-//
-//    private fun onContribution(packet: Packet) {
-//        val (_, contribution) = packet.getAuthPayload(ContributionMessage)
-//        scope.launch {
-//            Log.d("MusicCommunity", "Received contribution: $contribution")
-//            payoutManager.registerContribution(
-//                contribution.txid,
-//                "TODO",
-//                "TODO",
-//                contribution.artistSplits
-//            )
-//        }
-//    }
 }

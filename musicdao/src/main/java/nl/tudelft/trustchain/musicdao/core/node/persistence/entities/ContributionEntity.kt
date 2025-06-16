@@ -19,7 +19,6 @@ import androidx.room.PrimaryKey
 data class ContributionEntity(
     @PrimaryKey
     val transactionHash: String,
-    val contributorAddress: String,
     val signature: String,
 
     val artistSplits: Map<String, Float>,

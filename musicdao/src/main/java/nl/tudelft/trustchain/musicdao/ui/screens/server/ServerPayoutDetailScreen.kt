@@ -11,16 +11,21 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Tab
 import androidx.compose.material.Text
+import androidx.compose.material.Button
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import nl.tudelft.trustchain.musicdao.core.node.persistence.entities.ArtistPayoutEntity
 import nl.tudelft.trustchain.musicdao.core.node.persistence.entities.ContributionEntity
+import nl.tudelft.trustchain.musicdao.core.node.persistence.entities.PayoutEntity
 
 @ExperimentalMaterialApi
 @Composable
@@ -31,10 +36,43 @@ fun ServerPayoutDetailScreen(
     val tabs = listOf("Contributions", "Artist Payouts")
     var state by remember { mutableStateOf(0) }
 
+    var payoutStatus by remember { mutableStateOf<PayoutEntity.PayoutStatus?>(null) }
+
+    val coroutine = rememberCoroutineScope()
+
+    LaunchedEffect(payoutId) {
+        coroutine.launch {
+            payoutStatus = viewModel.getPayoutStatus(payoutId)
+        }
+    }
+
     val contributions by viewModel.getContributionsForPayout(payoutId).collectAsState(initial = emptyList())
     val artistPayouts by viewModel.getArtistPayouts(payoutId).collectAsState(initial = emptyList())
 
     Column(modifier = Modifier.fillMaxSize()) {
+        payoutStatus?.let { status ->
+            if (status == PayoutEntity.PayoutStatus.COLLECTING || status == PayoutEntity.PayoutStatus.AWAITING_FOR_CONFIRMATION) {
+                val nextStatus = when (status) {
+                    PayoutEntity.PayoutStatus.COLLECTING -> PayoutEntity.PayoutStatus.AWAITING_FOR_CONFIRMATION
+                    PayoutEntity.PayoutStatus.AWAITING_FOR_CONFIRMATION -> PayoutEntity.PayoutStatus.SUBMITTED
+                    else -> status
+                }
+                Button(
+                    onClick = {
+                        coroutine.launch {
+                            val newStatus = viewModel.setPayoutStatus(payoutId, nextStatus)
+                            if (newStatus != null) {
+                                payoutStatus = newStatus
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Advance to: ${nextStatus.name}")
+                }
+            }
+        }
+
         TabRow(selectedTabIndex = state) {
             tabs.forEachIndexed { index, title ->
                 Tab(

@@ -4,11 +4,29 @@ import nl.tudelft.ipv8.messaging.*
 
 class ContributionMessage(
     val txid: String,
-    val artistSplits: Map<String, Float>
+    val artistSplits: Map<String, Float>,
+    var signature: String = "",
 ) : Serializable {
+
+    /**
+     * Generates a signable string representation of the contribution message.
+     */
+    fun getSignableString(): String {
+        val sortedSplits = artistSplits.toSortedMap()
+
+        val builder = StringBuilder()
+        builder.append(txid)
+
+        for ((artistId, share) in sortedSplits) {
+            builder.append("|").append(artistId).append(":").append(share)
+        }
+
+        return builder.toString()
+    }
 
     override fun serialize(): ByteArray {
         var result = serializeVarLen(txid.toByteArray(Charsets.UTF_8))
+        result += serializeVarLen(signature.toByteArray(Charsets.UTF_8))
         result += serializeUInt(artistSplits.size.toUInt())
 
         for ((artistId, share) in artistSplits) {
@@ -27,6 +45,10 @@ class ContributionMessage(
             val txid = txidBytes.toString(Charsets.UTF_8)
             localOffset += txidLen
 
+            val (signatureBytes, signatureLen) = deserializeVarLen(buffer, offset + localOffset)
+            val signature = signatureBytes.toString(Charsets.UTF_8)
+            localOffset += signatureLen
+
             val mapSize = deserializeUInt(buffer, offset + localOffset).toInt()
             localOffset += SERIALIZED_UINT_SIZE
 
@@ -43,14 +65,15 @@ class ContributionMessage(
                 artistSplits[artistId] = share
             }
 
-            return Pair(ContributionMessage(txid, artistSplits), localOffset)
+            return Pair(ContributionMessage(txid, artistSplits, signature), localOffset)
         }
     }
 
     override fun equals(other: Any?): Boolean {
         return other is ContributionMessage &&
             txid == other.txid &&
-            artistSplits == other.artistSplits
+            artistSplits == other.artistSplits &&
+            signature == other.signature
     }
 }
 

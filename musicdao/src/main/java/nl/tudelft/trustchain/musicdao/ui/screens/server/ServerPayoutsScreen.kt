@@ -1,6 +1,5 @@
 package nl.tudelft.trustchain.musicdao.ui.screens.server
 
-import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.lazy.LazyColumn
@@ -12,12 +11,15 @@ import nl.tudelft.trustchain.musicdao.core.node.persistence.entities.PayoutEntit
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Card
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import kotlinx.coroutines.launch
 import nl.tudelft.trustchain.musicdao.ui.navigation.Screen
 import nl.tudelft.trustchain.musicdao.ui.styling.MusicDAOTheme
 
@@ -33,7 +35,15 @@ fun ServerPayoutsScreen(
     val formatter = remember {
         java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.getDefault())
     }
-    Log.d("ServerPayoutsScreen", "Payouts with artists: $payoutsWithArtists")
+
+    val coroutine = rememberCoroutineScope()
+
+    LaunchedEffect(key1 = "") {
+        coroutine.launch {
+            serverPayoutsScreenViewModel.ensureACollectingPayoutIsShown()
+        }
+    }
+
 
     LazyColumn(
         modifier = Modifier
@@ -47,8 +57,8 @@ fun ServerPayoutsScreen(
 
             val backgroundColor = when (payout.payoutStatus) {
                 PayoutEntity.PayoutStatus.COLLECTING -> MusicDAOTheme.DarkColors.primary
-                PayoutEntity.PayoutStatus.AWAITING_FOR_CONFIRMATION -> Color(0xFFfffac8)
-                else -> Color.LightGray
+                PayoutEntity.PayoutStatus.AWAITING_FOR_CONFIRMATION -> Color(0xFFffd700)
+                else -> Color.DarkGray
             }
 
             Card(

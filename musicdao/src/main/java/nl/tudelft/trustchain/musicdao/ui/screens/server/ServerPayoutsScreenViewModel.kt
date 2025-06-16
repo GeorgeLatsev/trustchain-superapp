@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
+import nl.tudelft.trustchain.musicdao.core.node.PayoutManager
 import nl.tudelft.trustchain.musicdao.core.node.persistence.entities.PayoutWithArtists
 import nl.tudelft.trustchain.musicdao.core.node.persistence.ServerDatabase
 import javax.inject.Inject
@@ -14,10 +15,15 @@ import javax.inject.Inject
 class ServerPayoutsScreenViewModel
 @Inject
 constructor(
-    db: ServerDatabase
+    val db: ServerDatabase,
+    val payoutManager: PayoutManager
 ) : ViewModel() {
 
     val payoutsWithArtists: StateFlow<List<PayoutWithArtists>> =
         db.payoutDao.getAllPayoutsWithArtists()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
+
+    suspend fun ensureACollectingPayoutIsShown() {
+        payoutManager.getOrCreateNextPayout()
+    }
 }

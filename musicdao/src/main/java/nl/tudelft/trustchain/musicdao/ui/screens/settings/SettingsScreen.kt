@@ -22,7 +22,6 @@ import nl.tudelft.trustchain.musicdao.ui.navigation.Screen
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun SettingsScreen(
-    navController: NavController,
     settingsScreenViewModel: SettingsScreenViewModel
 ) {
     val coroutine = rememberCoroutineScope()
@@ -52,12 +51,6 @@ fun SettingsScreen(
                 Modifier.clickable {
                     openFilePickerDialog()
                 }
-        )
-        ListItem(
-            text = { Text(text = "Server information") },
-            modifier = Modifier.clickable {
-                navController.navigate(Screen.Server.route)
-            }
         )
     }
 }

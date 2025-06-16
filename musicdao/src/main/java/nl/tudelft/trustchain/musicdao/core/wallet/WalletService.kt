@@ -241,6 +241,23 @@ class WalletService(val config: WalletConfig, private val app: WalletAppKit) {
         }
     }
 
+    /**
+     * Sign a message using the wallet's current receive key.
+     * This proves ownership of the associated Bitcoin address.
+     *
+     * @param message The message to be signed.
+     * @return The signed message (Base64-encoded), or null if signing fails.
+     */
+    fun signMessage(message: String): String? {
+        return try {
+            val key = app.wallet().currentReceiveKey()
+            key.signMessage(message)
+        } catch (e: Exception) {
+            Log.e("MusicDao", "signMessage: Failed to sign message", e)
+            null
+        }
+    }
+
     companion object {
         val SATS_PER_BITCOIN = BigDecimal(100_000_000)
     }

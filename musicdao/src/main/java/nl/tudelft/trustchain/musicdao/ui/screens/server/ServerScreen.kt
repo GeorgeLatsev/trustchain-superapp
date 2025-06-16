@@ -33,13 +33,5 @@ fun ServerScreen(
                 navController.navigate(Screen.ServerContributions.route)
             }
         )
-        ListItem(
-            text = { Text(text = "Test") },
-            modifier = Modifier.clickable {
-                coroutine.launch {
-                    serverScreenViewModel.test()
-                }
-            }
-        )
     }
 }
