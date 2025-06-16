@@ -17,7 +17,7 @@ class SettingsScreenViewModel
     constructor(
         private val batchPublisher: BatchPublisher,
         private val cachePath: CachePath,
-        private val androidURIController: AndroidURIController
+        private val androidURIController: AndroidURIController,
     ) : ViewModel() {
         suspend fun publishBatch(
             uri: Uri,

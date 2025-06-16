@@ -70,7 +70,7 @@ class WalletService(val config: WalletConfig, private val app: WalletAppKit) {
     fun sendCoins(
         publicKey: String,
         coinsAmount: String
-    ): Boolean {
+    ): String? {
         Log.d("MusicDao", "Wallet (1): sending $coinsAmount to $publicKey")
 
         val coins: BigDecimal =
@@ -79,7 +79,7 @@ class WalletService(val config: WalletConfig, private val app: WalletAppKit) {
             } catch (e: NumberFormatException) {
                 Log.d("MusicDao", "Wallet (2): failed to parse $coinsAmount")
                 null
-            } ?: return false
+            } ?: return null
 
         val satoshiAmount = (coins * SATS_PER_BITCOIN).toLong()
 
@@ -89,19 +89,69 @@ class WalletService(val config: WalletConfig, private val app: WalletAppKit) {
             } catch (e: Exception) {
                 Log.d("MusicDao", "Wallet (3): failed to parse $publicKey")
                 null
-            } ?: return false
+            } ?: return null
 
         val sendRequest = SendRequest.to(targetAddress, Coin.valueOf(satoshiAmount))
         val feePerKb = CoinUtil.calculateFeeWithPriority(config.networkParams, CoinUtil.TxPriority.MEDIUM_PRIORITY)
         sendRequest.feePerKb = Coin.valueOf(feePerKb)
 
         return try {
-            app.wallet().sendCoins(sendRequest)
+            val result = app.wallet().sendCoins(sendRequest)
             Log.d("MusicDao", "Wallet (2): successfully sent $coinsAmount to $publicKey")
-            true
+            result.tx.txId.toString()
         } catch (e: Exception) {
             Log.d("MusicDao", "Wallet (3): failed sending $coinsAmount to $publicKey")
-            false
+            null
+        }
+    }
+
+    fun sendCoinsMulti(addressAmount: Map<String, Float>): String? {
+        val tx = Transaction(config.networkParams)
+        val outputs = mutableListOf<Pair<Address, Long>>()
+
+        for ((address, amount) in addressAmount) {
+            try {
+                val targetAddress = Address.fromString(config.networkParams, address)
+                val satoshiAmount = (amount.toBigDecimal() * SATS_PER_BITCOIN).toLong()
+                outputs.add(targetAddress to satoshiAmount)
+            } catch (e: Exception) {
+                Log.d("MusicDao", "Wallet (4): failed to parse $address")
+                continue
+            }
+        }
+
+        if (outputs.isEmpty()) return null
+
+        outputs.forEach { (address, amount) ->
+            tx.addOutput(Coin.valueOf(amount), address)
+        }
+
+        try {
+            val sendRequest = SendRequest.forTx(tx)
+            val feePerKb = CoinUtil.calculateFeeWithPriority(config.networkParams, CoinUtil.TxPriority.MEDIUM_PRIORITY)
+            sendRequest.feePerKb = Coin.valueOf(feePerKb)
+
+            app.wallet().completeTx(sendRequest)
+
+            val fee = sendRequest.feePerKb.longValue()
+            val originalTotal = outputs.sumOf { it.second }
+
+            tx.clearOutputs()
+            outputs.forEach { (address, originalAmount) ->
+                val adjustedAmount = ((originalAmount.toDouble() / originalTotal) * (originalTotal - fee)).toLong()
+                tx.addOutput(Coin.valueOf(adjustedAmount), address)
+            }
+
+            val adjustedRequest = SendRequest.forTx(tx)
+            adjustedRequest.ensureMinRequiredFee = true
+            app.wallet().completeTx(adjustedRequest)
+
+            val result = app.wallet().sendCoins(adjustedRequest)
+            Log.d("MusicDao", "Wallet (5): successfully sent multiple coins")
+            return result.tx.txId.toString()
+        } catch (e: Exception) {
+            Log.d("MusicDao", "Wallet (6): failed sending multiple coins", e)
+            return null
         }
     }
 
@@ -187,6 +237,23 @@ class WalletService(val config: WalletConfig, private val app: WalletAppKit) {
         return try {
             app.wallet().getBalance(Wallet.BalanceType.ESTIMATED).toFriendlyString()
         } catch (e: java.lang.Exception) {
+            null
+        }
+    }
+
+    /**
+     * Sign a message using the wallet's current receive key.
+     * This proves ownership of the associated Bitcoin address.
+     *
+     * @param message The message to be signed.
+     * @return The signed message (Base64-encoded), or null if signing fails.
+     */
+    fun signMessage(message: String): String? {
+        return try {
+            val key = app.wallet().currentReceiveKey()
+            key.signMessage(message)
+        } catch (e: Exception) {
+            Log.e("MusicDao", "signMessage: Failed to sign message", e)
             null
         }
     }

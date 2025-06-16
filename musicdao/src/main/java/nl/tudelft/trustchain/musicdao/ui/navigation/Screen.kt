@@ -33,10 +33,21 @@ sealed class Screen(val route: String) {
         fun createRoute(publicKey: String) = "profile/$publicKey/donate"
     }
 
+    object Server : Screen("server")
+
+    object ServerPayouts : Screen("server/payouts")
+
+    object ServerPayoutDetail : Screen("server/payouts/{payoutId}") {
+        fun createRoute(payoutId: String) = "server/payouts/$payoutId"
+    }
+
     object CreateRelease : Screen("release/create")
 
     object Contribute : Screen("contribute")
 
     object NewContributionRoute : Screen("contribute/new")
+
     object ListeningStats : Screen("listening_stats")
+
+    object ServerContributions : Screen("server/contributions")
 }

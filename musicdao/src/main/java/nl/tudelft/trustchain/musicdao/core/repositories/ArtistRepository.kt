@@ -24,6 +24,12 @@ class ArtistRepository
             return artistAnnounceBlockRepository.getOrCrawl(publicKey)?.let { toArtist(it) }
         }
 
+        fun getArtistByName(name: String): Artist? {
+            return artistAnnounceBlockRepository.getAllLocal()
+                .firstOrNull { it.name.equals(name, ignoreCase = true) }
+                ?.let { toArtist(it) }
+        }
+
         fun getArtists(): List<Artist> {
             return artistAnnounceBlockRepository.getAllLocal().map { toArtist(it) }
         }

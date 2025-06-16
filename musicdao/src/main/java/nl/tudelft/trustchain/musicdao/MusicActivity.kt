@@ -26,7 +26,6 @@ import nl.tudelft.trustchain.musicdao.ui.MusicDAOApp
 import nl.tudelft.trustchain.musicdao.ui.screens.profile.ProfileScreenViewModel
 import nl.tudelft.trustchain.musicdao.ui.screens.release.ReleaseScreenViewModel
 import com.frostwire.jlibtorrent.SessionManager
-import com.frostwire.jlibtorrent.TorrentStatus
 import com.google.common.util.concurrent.Service
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -34,7 +33,9 @@ import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.components.ActivityComponent
 import kotlinx.coroutines.*
 import nl.tudelft.trustchain.musicdao.core.coin.WalletManager
+import nl.tudelft.trustchain.musicdao.core.contribute.PayoutService
 import javax.inject.Inject
+import javax.inject.Named
 
 /**
  * This maintains the interactions between the UI and seeding/trust-chain
@@ -59,6 +60,13 @@ class MusicActivity : AppCompatActivity() {
 
     @Inject
     lateinit var walletManager: WalletManager
+
+    @Inject
+    @Named("payoutWallet")
+    lateinit var payoutWalletService: WalletService
+
+    @Inject
+    lateinit var payoutService: PayoutService
 
     @Inject
     lateinit var batchPublisher: BatchPublisher
@@ -86,6 +94,7 @@ class MusicActivity : AppCompatActivity() {
             // download creative common music metadata
             val magnetUri = getString(R.string.bootstrap_cc_music_metadata);
             torrentEngine.download(magnetUri);
+            Log.d("MusicActivity", "Downloading CC music metadata from: $magnetUri")
         }
         iterativelyFetchReleases()
         Intent(this, MusicGossipingService::class.java).also { intent ->

@@ -1,5 +1,6 @@
 package nl.tudelft.trustchain.musicdao.ui.screens.contribute
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -7,7 +8,6 @@ import nl.tudelft.trustchain.musicdao.core.repositories.ArtistRepository
 import javax.inject.Inject
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,19 +15,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import nl.tudelft.ipv8.android.IPv8Android
-import nl.tudelft.ipv8.attestation.trustchain.TrustChainBlock
-import nl.tudelft.ipv8.attestation.trustchain.TrustChainCommunity
-import nl.tudelft.ipv8.attestation.trustchain.TrustChainSettings
-import nl.tudelft.ipv8.attestation.trustchain.store.TrustChainStore
 import nl.tudelft.trustchain.musicdao.core.contribute.Contribution
 import nl.tudelft.trustchain.musicdao.core.contribute.ContributionRepository
+import nl.tudelft.trustchain.musicdao.core.contribute.PayoutService
 import nl.tudelft.trustchain.musicdao.core.ipv8.MusicCommunity
 import nl.tudelft.trustchain.musicdao.core.ipv8.blocks.listenActivity.ListenActivityBlockRepository
-import nl.tudelft.trustchain.musicdao.core.repositories.model.Artist
-import nl.tudelft.trustchain.musicdao.core.util.TrustChainHelper
 import nl.tudelft.trustchain.musicdao.core.wallet.WalletService
-import nl.tudelft.trustchain.musicdao.ui.screens.wallet.BitcoinWalletViewModel
-import java.util.*;
+import java.util.UUID
 
 @HiltViewModel
 class ContributeViewModel
@@ -35,7 +29,8 @@ class ContributeViewModel
     constructor(
         private val contributionRepository: ContributionRepository,
         private val listenActivityBlockRepository: ListenActivityBlockRepository,
-        private val walletService: WalletService
+        private val artistRepository: ArtistRepository,
+        private val payoutService: PayoutService
     ) : ViewModel() {
 
     private val _isRefreshing: MutableLiveData<Boolean> = MutableLiveData()
@@ -64,19 +59,21 @@ class ContributeViewModel
         }
     }
 
-    // Add contributions to the shared pool
+    /**
+     * Contributes the given amount to the artists.
+     * The contribution is split based on the proportion of time listened to each artist.
+     *
+     * @param amount The amount to contribute.
+     * @return True if the contribution was successful, false otherwise.
+     */
     fun contribute(amount: Float): Boolean {
         _listenActivity.value = listenActivityBlockRepository.getMinutesPerArtist()
 
-        if (listenActivity.value.isNotEmpty()) {
+        if (listenActivity.value.isNotEmpty() && payoutService.isNodeFound.value) {
             val totalListenedTime = listenActivity.value.values.sum()
+
             val sharePerArtist = listenActivity.value.mapValues { (_, minutes) ->
                 (minutes / totalListenedTime).toFloat()
-            }
-
-            sharePerArtist.forEach() { artist ->
-                val share = amount * artist.value
-                walletService.sendCoins("server-bitcoin-address", share.toString())
             }
 
             val id = UUID.randomUUID().toString()
@@ -88,6 +85,17 @@ class ContributeViewModel
                 artists = sharePerArtist.keys.toList()
             )
 
+            val sharePerAddress = sharePerArtist.mapKeys { (key, _) ->
+                if ('|' in key) {
+                    key.substringAfter('|')
+                } else {
+                    Log.d("ContributeViewModel", "Getting artist from repository based on name ${artistRepository.getArtistByName(key)}")
+                    artistRepository.getArtistByName(key)?.bitcoinAddress
+                }
+            }.filterKeys {
+                it != null
+            }.mapKeys { it.key!! }
+
             val myPeer = IPv8Android.getInstance().myPeer
 
             // persist the contribution to the blockchain
@@ -97,7 +105,11 @@ class ContributeViewModel
                 "artists" to sharePerArtist.keys.toList()
             )
 
-            musicCommunity.createProposalBlock("contribute-proposal", transaction, myPeer.publicKey.keyToBin())
+            val result = payoutService.makeContribution(amount, sharePerAddress)
+            if (result) {
+                musicCommunity.createProposalBlock("contribute-proposal", transaction, myPeer.publicKey.keyToBin())
+                listenActivityBlockRepository.clearListenActivityData()
+            }
 
             _contributions.value += contribution
             return true

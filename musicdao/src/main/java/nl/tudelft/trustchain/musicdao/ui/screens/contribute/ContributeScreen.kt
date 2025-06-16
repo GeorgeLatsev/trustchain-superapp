@@ -25,7 +25,6 @@ import nl.tudelft.trustchain.musicdao.core.ipv8.MusicCommunity
 import nl.tudelft.trustchain.musicdao.ui.SnackbarHandler.coroutineScope
 import nl.tudelft.trustchain.musicdao.ui.components.EmptyState
 import nl.tudelft.trustchain.musicdao.ui.navigation.Screen
-import nl.tudelft.trustchain.musicdao.ui.screens.dao.DaoViewModel
 import nl.tudelft.trustchain.musicdao.ui.screens.profileMenu.CustomMenuItem
 import nl.tudelft.trustchain.musicdao.ui.screens.wallet.BitcoinWalletViewModel
 
@@ -33,7 +32,7 @@ import nl.tudelft.trustchain.musicdao.ui.screens.wallet.BitcoinWalletViewModel
 @Composable
 fun ContributeScreen(
     navController: NavController,
-    contributeViewModel: ContributeViewModel,
+    contributeViewModel: ContributeViewModel
 ) {
     val isRefreshing by contributeViewModel.isRefreshing.observeAsState(false)
     val refreshState = rememberSwipeRefreshState(isRefreshing)
@@ -76,15 +75,6 @@ fun ContributeScreen(
                         }
                     }
                 }
-
-                Spacer(modifier = Modifier.padding(8.dp))
-
-                CustomMenuItem(
-                    text = "Distribute pooled contributions",
-                    onClick = {
-                        bla()
-                    }
-                )
             }
         }
     }

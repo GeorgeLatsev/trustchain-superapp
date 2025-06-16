@@ -10,6 +10,7 @@ import nl.tudelft.trustchain.musicdao.core.ipv8.blocks.releasePublish.ReleasePub
 import nl.tudelft.trustchain.musicdao.core.repositories.model.Album
 import nl.tudelft.trustchain.musicdao.core.torrent.TorrentEngine
 import javax.inject.Inject
+import android.util.Log
 
 /**
  * This class will be the class the application interacts with and will return
@@ -84,22 +85,29 @@ class AlbumRepository
             val releaseBlocks = releasePublishBlockRepository.getValidBlocks()
 
             releaseBlocks.forEach {
-                database.dao.insert(
-                    AlbumEntity(
-                        id = it.releaseId,
-                        magnet = it.magnet,
-                        title = it.title,
-                        artist = it.artist,
-                        publisher = it.publisher,
-                        releaseDate = it.releaseDate,
-                        songs = listOf(),
-                        cover = null,
-                        root = null,
-                        isDownloaded = false,
-                        infoHash = TorrentEngine.magnetToInfoHash(it.magnet),
-                        torrentPath = null
+                try {
+                    database.dao.insert(
+                        AlbumEntity(
+                            id = it.releaseId,
+                            magnet = it.magnet,
+                            title = it.title,
+                            artist = it.artist,
+                            publisher = it.publisher,
+                            releaseDate = it.releaseDate,
+                            songs = listOf(),
+                            cover = null,
+                            root = null,
+                            isDownloaded = false,
+                            infoHash = TorrentEngine.magnetToInfoHash(it.magnet),
+                            torrentPath = null
+                        )
                     )
-                )
+                } catch (e: Exception) {
+                    Log.e(
+                        "AlbumRepository",
+                        "Failed to create block for ${it}: ${e.message}"
+                    )
+                }
             }
         }
     }

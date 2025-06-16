@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.util.Log
 import nl.tudelft.trustchain.musicdao.core.ipv8.modules.search.KeywordSearchMessage
 import com.frostwire.jlibtorrent.Sha1Hash
-import nl.tudelft.ipv8.Community.MessageId
 import nl.tudelft.ipv8.IPv4Address
 import nl.tudelft.ipv8.Overlay
 import nl.tudelft.ipv8.Peer
@@ -16,11 +15,15 @@ import nl.tudelft.ipv8.attestation.trustchain.store.TrustChainStore
 import nl.tudelft.ipv8.keyvault.PublicKey
 import nl.tudelft.ipv8.keyvault.defaultCryptoProvider
 import nl.tudelft.ipv8.messaging.Packet
+import nl.tudelft.ipv8.messaging.Serializable
 import nl.tudelft.ipv8.messaging.payload.IntroductionRequestPayload
 import nl.tudelft.ipv8.util.hexToBytes
 import nl.tudelft.ipv8.util.toHex
+import nl.tudelft.trustchain.common.util.InMemoryCache
 import java.util.*
-import kotlin.math.log
+import nl.tudelft.trustchain.common.util.PreferenceHelper
+import nl.tudelft.trustchain.musicdao.core.node.PREF_KEY_IS_NODE_ENABLED
+import nl.tudelft.trustchain.musicdao.core.node.PREF_KEY_NODE_BITCOIN_ADDRESS
 
 @Suppress("DEPRECATION")
 class MusicCommunity(
@@ -29,12 +32,14 @@ class MusicCommunity(
     crawler: TrustChainCrawler = TrustChainCrawler()
 ) : TrustChainCommunity(settings, database, crawler) {
     override val serviceId = "29384902d2938f34872398758cf7ca9238ccc333"
+
+    private var _payoutNodePeer: Peer? = null
+    private var _onPayoutNodePeerFound: ((node: Peer, nodeBitcoinAddress: String) -> Unit)? = null
+
     var swarmHealthMap = mutableMapOf<Sha1Hash, SwarmHealth>() // All recent swarm health data that
     // has been received from peers
 
     val discoveredAddressesContacted: MutableMap<IPv4Address, Date> = mutableMapOf()
-    var isServer: Boolean = false
-    var server: Peer? = null
 
     class Factory(
         private val settings: TrustChainSettings,
@@ -107,7 +112,7 @@ class MusicCommunity(
     }
 
     /**
-     * Filter local databse to find a release block that matches a certain title or artist, using
+     * Filter local database to find a release block that matches a certain title or artist, using
      * keyword search
      */
     @SuppressLint("NewApi")
@@ -144,78 +149,187 @@ class MusicCommunity(
     }
 
     object MessageId {
+        const val INTRODUCTION_REQUEST = nl.tudelft.ipv8.Community.MessageId.INTRODUCTION_REQUEST
         const val KEYWORD_SEARCH_MESSAGE = 10
         const val SWARM_HEALTH_MESSAGE = 11
+        const val CONTRIBUTION_MESSAGE = 12
+    }
+
+    /**
+     * Helper function to check if the current application is running as a payout node.
+     */
+    private fun isPayoutNodeEnabled(): Boolean {
+        return PreferenceHelper.get(PREF_KEY_IS_NODE_ENABLED, false)
+    }
+
+    /**
+     * Extra bytes that are sent in the introductions
+     */
+    object IntroductionExtraBytes {
+        const val IS_PAYOUT_NODE: Byte = 0x01
+        const val IS_LOOKING_FOR_PAYOUT_NODE: Byte = 0x02
     }
 
     override fun walkTo(address: IPv4Address) {
-        if (isServer) {
-            val extraBytes: ByteArray = byteArrayOf(0x01)
+        if (isPayoutNodeEnabled()) {
+            val extraBytes: ByteArray = byteArrayOf(IntroductionExtraBytes.IS_PAYOUT_NODE)
             val packet = createIntroductionRequest(address, extraBytes)
-            Log.i("Server walking to address", "Walking to address: $address")
+
+            Log.i("MusicCommunity (PAYOUT_NODE)", "Walking to address: $address")
             send(address, packet)
-        } else if (server == null) {
-            val extraBytes: ByteArray = byteArrayOf(0x02)
+        } else if (_payoutNodePeer == null) {
+            val extraBytes: ByteArray = byteArrayOf(IntroductionExtraBytes.IS_LOOKING_FOR_PAYOUT_NODE)
             val packet = createIntroductionRequest(address, extraBytes)
-            Log.i("Looking for", "Walking to address: $address")
+
+            Log.i("MusicCommunity (LOOKING FOR PAYOUT_NODE)", "Walking to address: $address")
             send(address, packet)
         } else {
-            Log.i("I know the server", "Walking to address: $address")
+            Log.i("MusicCommunity", "Walking to address: $address")
             super.walkTo(address)
         }
 
-        discoveredAddressesContacted[address] = Date()
-        Log.i("Discovered Addresses", "Discovered addresses contacted: ${discoveredAddressesContacted.keys.joinToString(", ")}")
+        if (isPayoutNodeEnabled()) {
+            discoveredAddressesContacted [address] = Date()
+            Log.i(
+                "MusicCommunity",
+                "Discovered addresses contacted: ${discoveredAddressesContacted.keys.joinToString(", ")}"
+            )
+        }
     }
 
     override fun onPacket(packet: Packet) {
         super.onPacket(packet)
-        if (!isServer && server == null) {
+
+        if (!isPayoutNodeEnabled() && _payoutNodePeer == null) {
             val data = packet.data
 
             val msgId = data[prefix.size].toUByte().toInt()
 
-            if (msgId == nl.tudelft.ipv8.Community.MessageId.INTRODUCTION_REQUEST) {
-
-                Log.i("Got Introduction Req", "Received introduction request from ${packet.source}")
-
+            if (msgId == MessageId.INTRODUCTION_REQUEST) {
                 val (peer, payload) = packet.getAuthPayload(IntroductionRequestPayload.Deserializer)
-                Log.i("Here is Introduction Request", "Received from: ${peer.address} (${payload})")
-                if (payload.extraBytes.contentEquals(byteArrayOf(0x01))) {
-                    Log.i("Found Server", "Found server: ${peer.address} (${peer.mid})")
-                    server = peer
-                } else if (payload.extraBytes.contentEquals(byteArrayOf(0x02)) && server != null) {
+                Log.i("MusicCommunity", "Received from: ${peer.address} (${payload})")
+                if (payload.extraBytes.isNotEmpty() && payload.extraBytes[0] == IntroductionExtraBytes.IS_PAYOUT_NODE) {
+                    val addressBytes = payload.extraBytes.drop(1).toByteArray()
+                    val address = addressBytes.toString(Charsets.UTF_8)
+
+                    Log.i(
+                        "MusicCommunity",
+                        "Found payout node: ${peer.address} (${peer.mid}), address: $address"
+                    )
+
+                    _payoutNodePeer = peer
+                    InMemoryCache.put(PREF_KEY_NODE_BITCOIN_ADDRESS, address)
+
+                    if (_onPayoutNodePeerFound != null) {
+                        _onPayoutNodePeerFound!!(peer, address)
+                    }
+                } else if (payload.extraBytes.contentEquals(byteArrayOf(IntroductionExtraBytes.IS_LOOKING_FOR_PAYOUT_NODE))
+                    && _payoutNodePeer != null
+                ) {
                     val globalTime = claimGlobalTime()
+
+                    val prefix: Byte = IntroductionExtraBytes.IS_PAYOUT_NODE
+                    val addressBytes: ByteArray = (InMemoryCache.get(PREF_KEY_NODE_BITCOIN_ADDRESS) as String).toByteArray(Charsets.UTF_8) // TODO: allow only if loaded
+
+                    val extraBytes: ByteArray = byteArrayOf(prefix) + addressBytes
 
                     val payloadNew = IntroductionRequestPayload(
                         peer.address,
-                        server?.lanAddress ?: myEstimatedLan,
-                        server?.wanAddress ?: myEstimatedWan,
+                        _payoutNodePeer?.lanAddress ?: myEstimatedLan,
+                        _payoutNodePeer?.wanAddress ?: myEstimatedWan,
                         true,
                         network.wanLog.estimateConnectionType(),
                         (globalTime % UShort.MAX_VALUE).toInt(),
-                        byteArrayOf(0x01)
+                        extraBytes
                     )
-                    Log.i("I know the server", "Impersonating server: ${peer.address} (${peer.mid})")
-                    send(peer.address, serializePacket(nl.tudelft.ipv8.Community.MessageId.INTRODUCTION_REQUEST, payloadNew))
+
+                    Log.i(
+                        "MusicCommunity",
+                        "Forward payout node info: ${peer.address} (${peer.mid})"
+                    )
+
+                    send(
+                        peer.address,
+                        serializePacket(MessageId.INTRODUCTION_REQUEST, payloadNew)
+                    )
                 }
             }
         }
 
-        if (isServer) {
-            Log.i("Got Introduction Req Server", "Received introduction request from ${packet.source}")
+        if (isPayoutNodeEnabled() && packet.source is IPv4Address) {
+            val peerAddress = packet.source as IPv4Address;
 
-            val (peer, payload) = packet.getAuthPayload(IntroductionRequestPayload.Deserializer)
-            Log.i("Introduction Request Server", "Received from: ${peer.address} (${payload})")
+            Log.i(
+                "MusicCommunity (PAYOUT_NODE)",
+                "Received message from ${peerAddress}"
+            )
 
-            val extraBytes: ByteArray = byteArrayOf(0x01)
-            val packetNew = createIntroductionRequest(peer.address, extraBytes)
-            if (!discoveredAddressesContacted.containsKey(peer.address)) {
-                send(peer.address, packetNew)
-                Log.i("I am the server someone asked about me", "Hello slave: ${peer.address} (${peer.mid})")
-                discoveredAddressesContacted[peer.address] = Date()
+            val prefix: Byte = IntroductionExtraBytes.IS_PAYOUT_NODE
+            val addressBytes: ByteArray = (InMemoryCache.get(PREF_KEY_NODE_BITCOIN_ADDRESS) as String).toByteArray(Charsets.UTF_8) // TODO: allow only if loaded
+
+            val extraBytes: ByteArray = byteArrayOf(prefix) + addressBytes
+            val packetNew = createIntroductionRequest(peerAddress, extraBytes)
+            if (!discoveredAddressesContacted.containsKey(peerAddress)) {
+                send(peerAddress, packetNew)
+                Log.i(
+                    "MusicCommunity (PAYOUT_NODE)",
+                    "Someone asked about the node: ${peerAddress}"
+                )
+                discoveredAddressesContacted[peerAddress] = Date()
             }
         }
     }
 
+    /**
+     * Sends a packet to the payout node if it is known, or to itself if it is running as a payout node.
+     */
+    fun sendPacketToPayoutNode(
+        messageId: Int,
+        payload: Serializable,
+        peer: Peer? = null
+    ): Boolean {
+        if (isPayoutNodeEnabled()) {
+            Log.i(
+                "MusicCommunity (PAYOUT_NODE)",
+                "Sending packet to self: $messageId, payload: $payload"
+            )
+
+            messageHandlers[messageId]?.invoke(
+                Packet(myPeer.address, serializePacket(messageId, payload))
+            ) ?: run {
+                Log.w(
+                    "MusicCommunity (PAYOUT_NODE)",
+                    "No handler registered for message ID: $messageId"
+                )
+            }
+
+            return true
+        }
+
+        val targetPeer = peer ?: _payoutNodePeer ?: return false
+
+        val packet = serializePacket(messageId, payload)
+        send(targetPeer, packet)
+
+        return true
+    }
+
+    /**
+     * Sets a callback that will be invoked when a payout node peer is found.
+     */
+    fun setOnPayoutNodePeerFound(
+        handler: (node: Peer, nodeBitcoinAddress: String) -> Unit
+    ) {
+        _onPayoutNodePeerFound = handler
+    }
+
+    /**
+     * Sets a message handler for a specific message ID. Doing so will override any existing handler.
+     */
+    fun setMessageHandler(
+        messageId: Int,
+        handler: (packet: Packet) -> Unit
+    ) {
+        messageHandlers[messageId] = handler
+    }
 }

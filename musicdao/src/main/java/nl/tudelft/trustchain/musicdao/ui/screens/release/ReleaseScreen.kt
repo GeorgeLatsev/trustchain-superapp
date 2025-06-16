@@ -253,12 +253,12 @@ fun Header(
                 style = MaterialTheme.typography.body2.merge(SpanStyle(fontWeight = FontWeight.SemiBold)),
                 modifier = Modifier.padding(bottom = 5.dp)
             )
+            Text(
+                album.publisher,
+                style = MaterialTheme.typography.body2.merge(SpanStyle(fontWeight = FontWeight.SemiBold)),
+                modifier = Modifier.padding(bottom = 5.dp)
+            )
         }
-        Text(
-            album.publisher,
-            style = MaterialTheme.typography.body2.merge(SpanStyle(fontWeight = FontWeight.SemiBold)),
-            modifier = Modifier.padding(bottom = 5.dp)
-        )
 
         Text(
             "Album - ${dateToShortString(album.releaseDate.toString())}",
