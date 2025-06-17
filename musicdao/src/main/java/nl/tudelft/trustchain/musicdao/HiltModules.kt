@@ -177,13 +177,6 @@ class HiltModules {
             walletManager.kit
         )
 
-        val isActingAsNode = PreferenceHelper.get(PREF_KEY_IS_NODE_ENABLED, false);
-        Log.d("MVDAO", "Server wallet service is acting as node: $isActingAsNode")
-        if (isActingAsNode) {
-            Log.d("MVDAO", "Setting server wallet address in InMemoryCache")
-            InMemoryCache.put(PREF_KEY_NODE_BITCOIN_ADDRESS, walletService.protocolAddress().toString())
-        }
-
         return walletService
     }
 

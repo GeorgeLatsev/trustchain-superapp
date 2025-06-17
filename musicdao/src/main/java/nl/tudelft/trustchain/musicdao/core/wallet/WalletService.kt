@@ -112,11 +112,7 @@ class WalletService(val config: WalletConfig, private val app: WalletAppKit) {
 
         for ((addressStr, amount) in addressAmount) {
             try {
-                val address = try {
-                    Address.fromString(config.networkParams, addressStr)
-                } catch (e: Exception) {
-                    SegwitAddress.fromBech32(config.networkParams, addressStr)
-                }
+                val address = Address.fromString(config.networkParams, addressStr)
                 val satoshis = (amount.toBigDecimal() * SATS_PER_BITCOIN).toLong()
                 outputs.add(address to satoshis)
             } catch (e: Exception) {
@@ -126,12 +122,14 @@ class WalletService(val config: WalletConfig, private val app: WalletAppKit) {
 
         if (outputs.isEmpty()) return null
 
-        outputs.forEach { (address, satoshis) ->
-            tx.addOutput(Coin.valueOf(satoshis), address)
+        outputs.forEach { (address, _) ->
+            // estimate fee with 1000 satoshi per output as we could end up with insufficient funds otherwise; less than 1000 leads to Wallet$DustySendRequested
+            tx.addOutput(Coin.valueOf(1000), address)
         }
 
         try {
             val sendRequest = SendRequest.forTx(tx)
+
             val feePerKb = CoinUtil.calculateFeeWithPriority(config.networkParams, CoinUtil.TxPriority.MEDIUM_PRIORITY)
             sendRequest.feePerKb = Coin.valueOf(feePerKb)
             sendRequest.ensureMinRequiredFee = true
@@ -142,7 +140,7 @@ class WalletService(val config: WalletConfig, private val app: WalletAppKit) {
             val fee = actualTx.inputSum.subtract(actualTx.outputSum)
 
             val totalOriginal = outputs.sumOf { it.second }
-            val feeLong = fee.value
+            val feeLong = fee.value + 5000 // add a small buffer to avoid insufficient funds issues
 
             if (feeLong > totalOriginal) {
                 Log.e("MusicDao", "Fee exceeds total amount.")

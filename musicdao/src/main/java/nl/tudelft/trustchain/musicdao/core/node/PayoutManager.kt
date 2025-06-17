@@ -177,14 +177,12 @@ constructor(
                 if (payout.artistPayouts.isEmpty()) {
                     Log.e("PayoutManager", "No artist payouts found for payout ID $payoutId")
                     return PayoutEntity.PayoutStatus.SUBMITTED
+
                 }
+
                 val txid = payoutWalletService.sendCoinsMulti(payout.artistPayouts.associate { it.artistAddress to (it.payoutAmount.toFloat() / SATS_PER_BITCOIN.toFloat()) }) // TODO: check limit and make multiple txes if needed
-
                 val artistSplits = payout.artistPayouts.associate { it.artistAddress to it.payoutAmount.toFloat() }
-
-
                 val transactionIds = database.payoutDao.getVerifiedContributionsTransactionHashesByPayoutId(payoutId)
-
 
                 val transaction = mutableMapOf(
                     "payoutId" to payoutId,
@@ -201,7 +199,6 @@ constructor(
                 )
 
                 Log.d("transaction", "transaction is: $transaction")
-
 
                 if (txid != null) {
                     Log.d("PayoutManager", "Successfully sent payout for ID $payoutId with txid $txid")

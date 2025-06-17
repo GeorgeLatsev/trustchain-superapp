@@ -16,9 +16,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
+import nl.tudelft.trustchain.musicdao.core.wallet.WalletService.Companion.SATS_PER_BITCOIN
 import nl.tudelft.trustchain.musicdao.ui.SnackbarHandler
 import nl.tudelft.trustchain.musicdao.ui.screens.profileMenu.CustomMenuItem
 import nl.tudelft.trustchain.musicdao.ui.screens.wallet.BitcoinWalletViewModel
+import java.math.BigDecimal
 
 @Composable
 fun ContributeCreateScreen(
@@ -39,21 +41,33 @@ fun ContributeCreateScreen(
 
         // Check if enough balance available
         val confirmedBalance = bitcoinWalletViewModel.confirmedBalance.value
-        if (confirmedBalance == null || confirmedBalance.isZero || confirmedBalance.isNegative) {
+        val amountSats = (BigDecimal(amountFloat.toDouble()) * SATS_PER_BITCOIN).toLong();
+        if (confirmedBalance == null || confirmedBalance.isZero || confirmedBalance.isNegative || confirmedBalance.value < amountSats) {
             SnackbarHandler.displaySnackbar("You don't have enough funds to make a donation")
             return
         }
 
         coroutine.launch {
             val result = contributeViewModel.contribute(amountFloat)
+            when (result) {
+                ContributeViewModel.ContributionStatus.NO_LISTEN_ACTIVITY -> {
+                    SnackbarHandler.displaySnackbar("You haven't listened to any artists yet")
+                    return@launch
+                }
+                ContributeViewModel.ContributionStatus.NO_NODE_FOUND -> {
+                    SnackbarHandler.displaySnackbar("No payout node found, please try again later")
+                    return@launch
+                }
+                ContributeViewModel.ContributionStatus.FAILURE -> {
+                    SnackbarHandler.displaySnackbar("Contribution failed")
+                    return@launch
+                }
+                ContributeViewModel.ContributionStatus.SUCCESS -> {
+                    contributeViewModel.refresh()
 
-            if (result) {
-                contributeViewModel.refresh()
-
-                SnackbarHandler.displaySnackbar("Contribution created")
-                navController.popBackStack()
-            } else {
-                SnackbarHandler.displaySnackbar("Contribution failed")
+                    SnackbarHandler.displaySnackbar("Contribution created")
+                    navController.popBackStack()
+                }
             }
         }
     }
