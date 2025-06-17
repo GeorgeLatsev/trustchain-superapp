@@ -64,7 +64,9 @@ import nl.tudelft.trustchain.common.util.InMemoryCache
 import nl.tudelft.trustchain.currencyii.CoinCommunity
 import nl.tudelft.trustchain.eurotoken.community.EuroTokenCommunity
 import nl.tudelft.trustchain.eurotoken.db.TrustStore
+import nl.tudelft.trustchain.musicdao.core.cache.CacheDatabase
 import nl.tudelft.trustchain.musicdao.core.ipv8.MusicCommunity
+import nl.tudelft.trustchain.musicdao.core.ipv8.blocks.payoutStatusUpdate.PayoutUpdateStatusBlock
 import nl.tudelft.trustchain.valuetransfer.community.IdentityCommunity
 import nl.tudelft.trustchain.valuetransfer.community.PeerChatCommunity
 import nl.tudelft.trustchain.valuetransfer.db.IdentityStore
@@ -80,6 +82,9 @@ val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "se
 class TrustChainApplication : Application() {
     var isFirstRun: Boolean = false
     lateinit var appLoader: AppLoader
+
+    @Inject
+    lateinit var musicCacheDatabase: CacheDatabase
 
     override fun onCreate() =
         runBlocking {
@@ -126,6 +131,26 @@ class TrustChainApplication : Application() {
 
         initWallet()
         initTrustChain()
+        initMusicCommunity()
+    }
+
+    private fun initMusicCommunity() {
+        val community = IPv8Android.getInstance().getOverlay<MusicCommunity>()
+
+        community?.addListener(PayoutUpdateStatusBlock.BLOCK_TYPE, object : BlockListener {
+            override fun onBlockReceived(block: TrustChainBlock) {
+                Log.d(
+                    "MusicCommunityTashaci",
+                    "Received block: ${block.blockId} with transaction: ${block.transaction}"
+                )
+
+                val transactionIds = block.transaction["transactionIds"] as List<String>?
+
+                GlobalScope.launch {
+                    musicCacheDatabase.dao.markContributionsAsSatisfied(transactionIds?: emptyList())
+                }
+            }
+        })
     }
 
     @OptIn(DelicateCoroutinesApi::class) // TODO: Verify whether usage is correct.

@@ -24,4 +24,20 @@ class Converters(
             object : TypeToken<ArrayList<SongEntity>>() {}.type
         ) ?: "[]"
     }
+
+    @TypeConverter
+    fun fromArtistsJson(json: String): List<String> {
+        return jsonParser.fromJson<ArrayList<String>>(
+            json,
+            object : TypeToken<ArrayList<String>>() {}.type
+        ) ?: emptyList()
+    }
+
+    @TypeConverter
+    fun toArtistsJson(meanings: List<String>): String {
+        return jsonParser.toJson(
+            meanings,
+            object : TypeToken<ArrayList<String>>() {}.type
+        ) ?: "[]"
+    }
 }

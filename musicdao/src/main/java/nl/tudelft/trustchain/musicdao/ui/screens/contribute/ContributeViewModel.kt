@@ -15,11 +15,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import nl.tudelft.ipv8.android.IPv8Android
+import nl.tudelft.trustchain.musicdao.core.cache.CacheDatabase
+import nl.tudelft.trustchain.musicdao.core.cache.entities.ContributionEntity
 import nl.tudelft.trustchain.musicdao.core.contribute.Contribution
 import nl.tudelft.trustchain.musicdao.core.contribute.ContributionRepository
 import nl.tudelft.trustchain.musicdao.core.contribute.PayoutService
 import nl.tudelft.trustchain.musicdao.core.ipv8.MusicCommunity
 import nl.tudelft.trustchain.musicdao.core.ipv8.blocks.listenActivity.ListenActivityBlockRepository
+import nl.tudelft.trustchain.musicdao.core.node.persistence.PayoutDao
 import nl.tudelft.trustchain.musicdao.core.wallet.WalletService
 import java.util.UUID
 
@@ -30,17 +33,21 @@ class ContributeViewModel
         private val contributionRepository: ContributionRepository,
         private val listenActivityBlockRepository: ListenActivityBlockRepository,
         val artistRepository: ArtistRepository,
-        private val payoutService: PayoutService
+        private val payoutService: PayoutService,
+        val cacheDatabase: CacheDatabase
     ) : ViewModel() {
 
     private val _isRefreshing: MutableLiveData<Boolean> = MutableLiveData()
     val isRefreshing: LiveData<Boolean> = _isRefreshing
 
-    private val _contributions: MutableStateFlow<List<Contribution>> = MutableStateFlow(listOf())
-    val contributions: StateFlow<List<Contribution>> = _contributions
-
     private val _listenActivity: MutableStateFlow<Map<String, Double>> = MutableStateFlow(mapOf())
     val listenActivity: StateFlow<Map<String, Double>> = _listenActivity
+
+    // set with unsatisfied contributions
+    // set with satisfied payoutIds
+
+    private val _payoutIds: MutableStateFlow<List<String>> = MutableStateFlow(listOf())
+    val payoutIds: StateFlow<List<String>> = _payoutIds
 
     private val musicCommunity: MusicCommunity by lazy {
         IPv8Android.getInstance()
@@ -50,11 +57,6 @@ class ContributeViewModel
 
     init {
         viewModelScope.launch {
-            val contributionsFromRepo = contributionRepository.getContributions()
-
-            // set the _contributions value to be all contributions from the repository not contained in flushedContributions
-            _contributions.value = contributionsFromRepo
-
             _listenActivity.value = listenActivityBlockRepository.getMinutesPerArtist()
         }
     }
@@ -93,7 +95,8 @@ class ContributeViewModel
                 val contribution = Contribution(
                     txid = result,
                     amount = amount,
-                    artists = sharePerArtist.keys.toList()
+                    artists = sharePerArtist.keys.toList(),
+                    satisfied = false
                 )
                 val transaction = mutableMapOf(
                     "txid" to result,
@@ -104,8 +107,8 @@ class ContributeViewModel
 
                 musicCommunity.createProposalBlock("contribute-proposal", transaction, myPeer.publicKey.keyToBin())
                 listenActivityBlockRepository.clearListenActivityData()
+                cacheDatabase.dao.insert(contribution.toEntity())
 
-                _contributions.value += contribution
             }
 
             return result != null
@@ -128,7 +131,6 @@ class ContributeViewModel
                 val contributions = contributionsFromRepo
 
                 withContext(Dispatchers.Main) {
-                    _contributions.value = contributions
                     _isRefreshing.value = false
                 }
 

@@ -30,6 +30,7 @@ import nl.tudelft.trustchain.musicdao.ui.screens.wallet.BitcoinWalletViewModel
 import androidx.compose.runtime.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import nl.tudelft.trustchain.musicdao.core.cache.entities.ContributionEntity
 import nl.tudelft.trustchain.musicdao.core.repositories.ArtistRepository
 
 @ExperimentalMaterialApi
@@ -40,7 +41,8 @@ fun ContributeScreen(
 ) {
     val isRefreshing by contributeViewModel.isRefreshing.observeAsState(false)
     val refreshState = rememberSwipeRefreshState(isRefreshing)
-    val contributions by contributeViewModel.contributions.collectAsState()
+    val _contributions by contributeViewModel.cacheDatabase.dao.getAllContributions().collectAsState(initial = emptyList())
+    val contributions = _contributions.reversed()
     val artistRepository = contributeViewModel.artistRepository
 
     fun bla() {
@@ -87,7 +89,7 @@ fun ContributeScreen(
 
 @Composable
 fun ContributionItem(
-    contribution: Contribution,
+    contribution: ContributionEntity,
     artistRepository: ArtistRepository
 ) {
     var artistNames by remember(contribution) { mutableStateOf<List<String>>(emptyList()) }
@@ -105,7 +107,14 @@ fun ContributionItem(
         artistNames = names
     }
 
+    val backgroundColor = if (contribution.satisfied) {
+        androidx.compose.material.MaterialTheme.colors.primary
+    } else {
+        androidx.compose.material.MaterialTheme.colors.surface
+    }
+
     Card(
+        backgroundColor = backgroundColor,
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp),

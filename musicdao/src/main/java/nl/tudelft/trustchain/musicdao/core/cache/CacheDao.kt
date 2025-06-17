@@ -2,7 +2,9 @@ package nl.tudelft.trustchain.musicdao.core.cache
 
 import androidx.lifecycle.LiveData
 import androidx.room.*
+import kotlinx.coroutines.flow.Flow
 import nl.tudelft.trustchain.musicdao.core.cache.entities.AlbumEntity
+import nl.tudelft.trustchain.musicdao.core.cache.entities.ContributionEntity
 
 @Dao
 interface CacheDao {
@@ -35,4 +37,14 @@ interface CacheDao {
 
     @Query("SELECT * FROM AlbumEntity WHERE artist LIKE '%' || :keyword || '%' OR title LIKE '%' || :keyword || '%'")
     suspend fun localSearch(keyword: String): List<AlbumEntity>
+
+
+    @Query("SELECT * FROM ContributionEntity")
+    fun getAllContributions(): Flow<List<ContributionEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insert(infos: ContributionEntity)
+
+    @Query("UPDATE ContributionEntity SET satisfied = 1 WHERE id IN (:transactionIds)")
+    suspend fun markContributionsAsSatisfied(transactionIds: List<String>)
 }

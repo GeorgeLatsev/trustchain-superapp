@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import nl.tudelft.ipv8.android.IPv8Android
 import nl.tudelft.trustchain.musicdao.core.ipv8.MusicCommunity
+import nl.tudelft.trustchain.musicdao.core.ipv8.blocks.payoutStatusUpdate.PayoutUpdateStatusBlock
 import nl.tudelft.trustchain.musicdao.core.ipv8.modules.contribution.ContributionMessage
 import nl.tudelft.trustchain.musicdao.core.node.persistence.ServerDatabase
 import nl.tudelft.trustchain.musicdao.core.node.persistence.entities.ContributionEntity
@@ -194,7 +195,7 @@ constructor(
                 )
 
                 musicCommunity.createProposalBlock(
-                    "payoutUpdate",
+                    PayoutUpdateStatusBlock.BLOCK_TYPE,
                     transaction,
                     IPv8Android.getInstance().myPeer.publicKey.keyToBin()
                 )
