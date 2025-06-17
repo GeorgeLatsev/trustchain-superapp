@@ -2,6 +2,7 @@ package nl.tudelft.trustchain.musicdao.core.contribute
 
 import android.annotation.SuppressLint
 import kotlinx.coroutines.flow.MutableStateFlow
+import nl.tudelft.ipv8.android.IPv8Android
 import nl.tudelft.ipv8.attestation.trustchain.TrustChainBlock
 import nl.tudelft.ipv8.attestation.trustchain.TrustChainCommunity
 import nl.tudelft.ipv8.keyvault.defaultCryptoProvider
@@ -19,13 +20,16 @@ class ContributionRepository
         private val musicCommunity: MusicCommunity,
     ) {
 
+    val myPeer = IPv8Android.getInstance().myPeer
+
     suspend fun getContribution(publicKey: String): Contribution? {
         return getOrCrawl(publicKey)?.let { toContribution(it) }
     }
 
     fun getContributions(): List<Contribution> {
         val blocks = musicCommunity.database.getBlocksWithType("contribute-proposal")
-            .sortedByDescending { it.sequenceNumber }
+            .filter { it.publicKey.contentEquals(myPeer.publicKey.keyToBin()) }
+            .sortedByDescending { it.timestamp }
 
         return blocks.map { toContribution(it) }
     }
@@ -34,9 +38,10 @@ class ContributionRepository
         val artists = block.transaction["artists"] as List<String>
 
         return Contribution(
-            id = block.transaction["id"] as String,
+            txid = (block.transaction["txid"]?: block.publicKey.toHex()).toString(),
             amount = block.transaction["amount"] as Float,
-            artists = artists
+            artists = artists,
+            satisfied = false
         )
     }
 

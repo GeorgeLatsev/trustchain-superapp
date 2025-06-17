@@ -229,7 +229,7 @@ class MusicCommunity(
                     val globalTime = claimGlobalTime()
 
                     val prefix: Byte = IntroductionExtraBytes.IS_PAYOUT_NODE
-                    val addressBytes: ByteArray = (InMemoryCache.get(PREF_KEY_NODE_BITCOIN_ADDRESS) as String).toByteArray(Charsets.UTF_8) // TODO: allow only if loaded
+                    val addressBytes: ByteArray = (InMemoryCache.get(PREF_KEY_NODE_BITCOIN_ADDRESS) as String).toByteArray(Charsets.UTF_8)
 
                     val extraBytes: ByteArray = byteArrayOf(prefix) + addressBytes
 
@@ -265,7 +265,7 @@ class MusicCommunity(
             )
 
             val prefix: Byte = IntroductionExtraBytes.IS_PAYOUT_NODE
-            val addressBytes: ByteArray = (InMemoryCache.get(PREF_KEY_NODE_BITCOIN_ADDRESS) as String).toByteArray(Charsets.UTF_8) // TODO: allow only if loaded
+            val addressBytes: ByteArray = (InMemoryCache.get(PREF_KEY_NODE_BITCOIN_ADDRESS) as String).toByteArray(Charsets.UTF_8)
 
             val extraBytes: ByteArray = byteArrayOf(prefix) + addressBytes
             val packetNew = createIntroductionRequest(peerAddress, extraBytes)

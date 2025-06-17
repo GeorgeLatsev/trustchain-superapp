@@ -10,12 +10,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import nl.tudelft.ipv8.android.IPv8Android
 import nl.tudelft.trustchain.musicdao.core.ipv8.MusicCommunity
+import nl.tudelft.trustchain.musicdao.core.ipv8.blocks.payoutStatusUpdate.PayoutUpdateStatusBlock
 import nl.tudelft.trustchain.musicdao.core.ipv8.modules.contribution.ContributionMessage
 import nl.tudelft.trustchain.musicdao.core.node.persistence.ServerDatabase
 import nl.tudelft.trustchain.musicdao.core.node.persistence.entities.ContributionEntity
 import nl.tudelft.trustchain.musicdao.core.node.persistence.entities.PayoutEntity
 import nl.tudelft.trustchain.musicdao.core.wallet.WalletService
+import nl.tudelft.trustchain.musicdao.core.wallet.WalletService.Companion.SATS_PER_BITCOIN
 import org.bitcoinj.core.Address
 import org.bitcoinj.core.Transaction
 import javax.inject.Inject
@@ -174,8 +177,28 @@ constructor(
                 if (payout.artistPayouts.isEmpty()) {
                     Log.e("PayoutManager", "No artist payouts found for payout ID $payoutId")
                     return PayoutEntity.PayoutStatus.SUBMITTED
+
                 }
-                val txid = walletService.sendCoinsMulti(payout.artistPayouts.associate { it.artistAddress to it.payoutAmount.toFloat() }) // TODO: check limit and make multiple txes if needed
+
+                val txid = payoutWalletService.sendCoinsMulti(payout.artistPayouts.associate { it.artistAddress to (it.payoutAmount.toFloat() / SATS_PER_BITCOIN.toFloat()) }) // TODO: check limit and make multiple txes if needed
+                val artistSplits = payout.artistPayouts.associate { it.artistAddress to it.payoutAmount.toFloat() }
+                val transactionIds = database.payoutDao.getVerifiedContributionsTransactionHashesByPayoutId(payoutId)
+
+                val transaction = mutableMapOf(
+                    "payoutId" to payoutId,
+                    "payoutStatus" to status.toString(),
+                    "artistSplits" to artistSplits,
+                    "transactionIds" to transactionIds,
+                    "payoutTransactionId" to (txid ?: ""),
+                )
+
+                musicCommunity.createProposalBlock(
+                    PayoutUpdateStatusBlock.BLOCK_TYPE,
+                    transaction,
+                    IPv8Android.getInstance().myPeer.publicKey.keyToBin()
+                )
+
+                Log.d("transaction", "transaction is: $transaction")
 
                 if (txid != null) {
                     Log.d("PayoutManager", "Successfully sent payout for ID $payoutId with txid $txid")

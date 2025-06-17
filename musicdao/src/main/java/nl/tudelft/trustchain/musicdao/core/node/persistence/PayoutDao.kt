@@ -55,6 +55,9 @@ interface PayoutDao {
         return getPayoutIdByStatus(PayoutEntity.PayoutStatus.AWAITING_FOR_CONFIRMATION)
     }
 
+    @Query("SELECT transactionHash FROM ContributionEntity WHERE payoutId = :payoutId AND status = 'VERIFIED'")
+    suspend fun getVerifiedContributionsTransactionHashesByPayoutId(payoutId: String): List<String>
+
     @Query("SELECT id FROM PayoutEntity WHERE payoutStatus = :status LIMIT 1")
     suspend fun getPayoutIdByStatus(status: PayoutEntity.PayoutStatus): String?
 
