@@ -172,7 +172,7 @@ class MusicCommunity(
 
     override fun walkTo(address: IPv4Address) {
         if (isPayoutNodeEnabled()) {
-            val extraBytes: ByteArray = byteArrayOf(IntroductionExtraBytes.IS_PAYOUT_NODE)
+            val extraBytes: ByteArray = byteArrayOf(IntroductionExtraBytes.IS_PAYOUT_NODE) + (InMemoryCache.get(PREF_KEY_NODE_BITCOIN_ADDRESS) as String).toByteArray(Charsets.UTF_8)
             val packet = createIntroductionRequest(address, extraBytes)
 
             Log.i("MusicCommunity (PAYOUT_NODE)", "Walking to address: $address")
