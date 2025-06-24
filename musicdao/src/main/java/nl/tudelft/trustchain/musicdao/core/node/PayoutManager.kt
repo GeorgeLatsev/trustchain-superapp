@@ -98,7 +98,19 @@ constructor(
                 onTransactionReceived(tx.txId.toString(), sender, newBalance.value - prevBalance.value)
             }
         }
-        // TODO: check if there are any completed transactions when the service starts
+
+        coroutineScope.launch {
+            val unconfirmedContributions = database.payoutDao.getUnverifiedContributionsTransactionHashes()
+
+            for (transaction in unconfirmedContributions) {
+                val tx = walletService.userTransactions.value.find { it.transaction.txId.toString() == transaction }
+                if (tx != null) {
+                    val sender = getTransactionSenderAddress(tx.transaction) ?: continue
+                    onTransactionReceived(tx.transaction.txId.toString(), sender, tx.value.value)
+                }
+            }
+        }
+
     }
 
     private fun getTransactionSenderAddress(tx: Transaction): Address? {

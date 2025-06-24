@@ -133,6 +133,9 @@ interface PayoutDao {
     @Query("SELECT * FROM ArtistPayoutEntity WHERE payoutId = :payoutId")
     fun getArtistPayoutsByPayoutId(payoutId: String): Flow<List<ArtistPayoutEntity>>
 
+    @Query("SELECT transactionHash FROM ContributionEntity WHERE status = 'UNVERIFIED'")
+    suspend fun getUnverifiedContributionsTransactionHashes(): List<String>
+
     @Query("SELECT * FROM ContributionEntity WHERE status = 'UNVERIFIED'")
     fun getUnverifiedContributions(): Flow<List<ContributionEntity>>
 
