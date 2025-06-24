@@ -11,6 +11,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import nl.tudelft.ipv8.android.IPv8Android
+import nl.tudelft.trustchain.common.util.PreferenceHelper
 import nl.tudelft.trustchain.musicdao.core.ipv8.MusicCommunity
 import nl.tudelft.trustchain.musicdao.core.ipv8.blocks.payoutStatusUpdate.PayoutUpdateStatusBlock
 import nl.tudelft.trustchain.musicdao.core.ipv8.modules.contribution.ContributionMessage
@@ -57,7 +58,10 @@ constructor(
 
     fun enable() {
         val prefs = PreferenceManager.getDefaultSharedPreferences(context)
-        prefs.edit { putBoolean(PREF_KEY_IS_NODE_ENABLED, true) }
+        prefs.edit {
+            putBoolean(PREF_KEY_IS_NODE_ENABLED, true)
+            putString(PREF_KEY_NODE_BITCOIN_ADDRESS, payoutWalletService.protocolAddress().toString())
+        }
         Log.d("PayoutManager", "PayoutManager enabled, initializing")
         init()
     }

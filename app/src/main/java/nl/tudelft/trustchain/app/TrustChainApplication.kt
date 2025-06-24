@@ -60,15 +60,13 @@ import nl.tudelft.trustchain.common.MarketCommunity
 import nl.tudelft.trustchain.common.bitcoin.WalletService
 import nl.tudelft.trustchain.common.eurotoken.GatewayStore
 import nl.tudelft.trustchain.common.eurotoken.TransactionRepository
-import nl.tudelft.trustchain.common.util.InMemoryCache
 import nl.tudelft.trustchain.currencyii.CoinCommunity
 import nl.tudelft.trustchain.eurotoken.community.EuroTokenCommunity
 import nl.tudelft.trustchain.eurotoken.db.TrustStore
 import nl.tudelft.trustchain.musicdao.core.cache.CacheDatabase
+import nl.tudelft.trustchain.musicdao.core.contribute.PayoutService
 import nl.tudelft.trustchain.musicdao.core.ipv8.MusicCommunity
 import nl.tudelft.trustchain.musicdao.core.ipv8.blocks.payoutStatusUpdate.PayoutUpdateStatusBlock
-import nl.tudelft.trustchain.musicdao.core.node.PREF_KEY_IS_NODE_ENABLED
-import nl.tudelft.trustchain.musicdao.core.node.PREF_KEY_NODE_BITCOIN_ADDRESS
 import nl.tudelft.trustchain.valuetransfer.community.IdentityCommunity
 import nl.tudelft.trustchain.valuetransfer.community.PeerChatCommunity
 import nl.tudelft.trustchain.valuetransfer.db.IdentityStore
@@ -87,9 +85,6 @@ class TrustChainApplication : Application() {
 
     @Inject
     lateinit var musicCacheDatabase: CacheDatabase
-
-    @Inject @Named("payoutWallet")
-    lateinit var payoutWalletService: nl.tudelft.trustchain.musicdao.core.wallet.WalletService // Force the loading of the payout wallet service to fill the in-memory cache
 
     override fun onCreate() =
         runBlocking {
@@ -156,13 +151,6 @@ class TrustChainApplication : Application() {
                 }
             }
         })
-
-        val isActingAsNode = PreferenceHelper.get(PREF_KEY_IS_NODE_ENABLED, false);
-        Log.d("MVDAO", "Payout wallet service is acting as node: $isActingAsNode")
-        if (isActingAsNode) {
-            Log.d("MVDAO", "Setting payout wallet address in InMemoryCache")
-            InMemoryCache.put(PREF_KEY_NODE_BITCOIN_ADDRESS, payoutWalletService.protocolAddress().toString())
-        }
     }
 
     @OptIn(DelicateCoroutinesApi::class) // TODO: Verify whether usage is correct.
