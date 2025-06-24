@@ -27,11 +27,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import nl.tudelft.ipv8.android.IPv8Android
-import nl.tudelft.trustchain.common.util.InMemoryCache
-import nl.tudelft.trustchain.common.util.PreferenceHelper
 import nl.tudelft.trustchain.musicdao.core.coin.*
-import nl.tudelft.trustchain.musicdao.core.node.PREF_KEY_IS_NODE_ENABLED
-import nl.tudelft.trustchain.musicdao.core.node.PREF_KEY_NODE_BITCOIN_ADDRESS
 import nl.tudelft.trustchain.musicdao.core.node.persistence.ServerDatabase
 import java.nio.file.Path
 import java.nio.file.Paths

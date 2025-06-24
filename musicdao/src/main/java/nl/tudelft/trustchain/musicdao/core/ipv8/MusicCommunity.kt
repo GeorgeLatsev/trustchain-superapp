@@ -17,6 +17,7 @@ import nl.tudelft.ipv8.keyvault.defaultCryptoProvider
 import nl.tudelft.ipv8.messaging.Packet
 import nl.tudelft.ipv8.messaging.Serializable
 import nl.tudelft.ipv8.messaging.payload.IntroductionRequestPayload
+import nl.tudelft.ipv8.messaging.payload.IntroductionResponsePayload
 import nl.tudelft.ipv8.util.hexToBytes
 import nl.tudelft.ipv8.util.toHex
 import nl.tudelft.trustchain.common.util.InMemoryCache
@@ -24,6 +25,7 @@ import java.util.*
 import nl.tudelft.trustchain.common.util.PreferenceHelper
 import nl.tudelft.trustchain.musicdao.core.node.PREF_KEY_IS_NODE_ENABLED
 import nl.tudelft.trustchain.musicdao.core.node.PREF_KEY_NODE_BITCOIN_ADDRESS
+import kotlin.random.Random
 
 @Suppress("DEPRECATION")
 class MusicCommunity(
@@ -35,6 +37,7 @@ class MusicCommunity(
 
     private var _payoutNodePeer: Peer? = null
     private var _onPayoutNodePeerFound: ((node: Peer, nodeBitcoinAddress: String) -> Unit)? = null
+    private var _onPayoutNodePeerFoundCache = mutableListOf<Pair<Peer, String>>()
 
     var swarmHealthMap = mutableMapOf<Sha1Hash, SwarmHealth>() // All recent swarm health data that
     // has been received from peers
@@ -150,6 +153,7 @@ class MusicCommunity(
 
     object MessageId {
         const val INTRODUCTION_REQUEST = nl.tudelft.ipv8.Community.MessageId.INTRODUCTION_REQUEST
+        const val INTRODUCTION_RESPONSE = nl.tudelft.ipv8.Community.MessageId.INTRODUCTION_RESPONSE
         const val KEYWORD_SEARCH_MESSAGE = 10
         const val SWARM_HEALTH_MESSAGE = 11
         const val CONTRIBUTION_MESSAGE = 12
@@ -168,116 +172,178 @@ class MusicCommunity(
     object IntroductionExtraBytes {
         const val IS_PAYOUT_NODE: Byte = 0x01
         const val IS_LOOKING_FOR_PAYOUT_NODE: Byte = 0x02
+        const val KNOWS_PAYOUT_NODE: Byte = 0x03
     }
 
+    // walkTo
     override fun walkTo(address: IPv4Address) {
         if (isPayoutNodeEnabled()) {
-            val extraBytes: ByteArray = byteArrayOf(IntroductionExtraBytes.IS_PAYOUT_NODE) + (InMemoryCache.get(PREF_KEY_NODE_BITCOIN_ADDRESS) as String).toByteArray(Charsets.UTF_8)
+            val addressBytes = (PreferenceHelper.get(PREF_KEY_NODE_BITCOIN_ADDRESS, "")).toByteArray(Charsets.UTF_8)
+            val extraBytes = byteArrayOf(IntroductionExtraBytes.IS_PAYOUT_NODE) + addressBytes
+          
             val packet = createIntroductionRequest(address, extraBytes)
 
-            Log.i("MusicCommunity (PAYOUT_NODE)", "Walking to address: $address")
+            Log.i("Connectivity (PAYOUT_NODE)", "Walking to address: $address")
             send(address, packet)
         } else if (_payoutNodePeer == null) {
             val extraBytes: ByteArray = byteArrayOf(IntroductionExtraBytes.IS_LOOKING_FOR_PAYOUT_NODE)
             val packet = createIntroductionRequest(address, extraBytes)
 
-            Log.i("MusicCommunity (LOOKING FOR PAYOUT_NODE)", "Walking to address: $address")
+            Log.i("Connectivity (SEARCHING)", "Walking to address: $address")
             send(address, packet)
         } else {
-            Log.i("MusicCommunity", "Walking to address: $address")
             super.walkTo(address)
-        }
-
-        if (isPayoutNodeEnabled()) {
-            discoveredAddressesContacted [address] = Date()
-            Log.i(
-                "MusicCommunity",
-                "Discovered addresses contacted: ${discoveredAddressesContacted.keys.joinToString(", ")}"
-            )
         }
     }
 
-    override fun onPacket(packet: Packet) {
-        super.onPacket(packet)
+    override fun getNewIntroduction(fromPeer: Peer?) {
+        var address = fromPeer?.address
 
-        if (!isPayoutNodeEnabled() && _payoutNodePeer == null) {
-            val data = packet.data
-
-            val msgId = data[prefix.size].toUByte().toInt()
-
-            if (msgId == MessageId.INTRODUCTION_REQUEST) {
-                val (peer, payload) = packet.getAuthPayload(IntroductionRequestPayload.Deserializer)
-                Log.i("MusicCommunity", "Received from: ${peer.address} (${payload})")
-                if (payload.extraBytes.isNotEmpty() && payload.extraBytes[0] == IntroductionExtraBytes.IS_PAYOUT_NODE) {
-                    val addressBytes = payload.extraBytes.drop(1).toByteArray()
-                    val address = addressBytes.toString(Charsets.UTF_8)
-
-                    Log.i(
-                        "MusicCommunity",
-                        "Found payout node: ${peer.address} (${peer.mid}), address: $address"
-                    )
-
-                    _payoutNodePeer = peer
-                    InMemoryCache.put(PREF_KEY_NODE_BITCOIN_ADDRESS, address)
-
-                    if (_onPayoutNodePeerFound != null) {
-                        _onPayoutNodePeerFound!!(peer, address)
-                    }
-                } else if (payload.extraBytes.contentEquals(byteArrayOf(IntroductionExtraBytes.IS_LOOKING_FOR_PAYOUT_NODE))
-                    && _payoutNodePeer != null
-                ) {
-                    val globalTime = claimGlobalTime()
-
-                    val prefix: Byte = IntroductionExtraBytes.IS_PAYOUT_NODE
-                    val addressBytes: ByteArray = (InMemoryCache.get(PREF_KEY_NODE_BITCOIN_ADDRESS) as String).toByteArray(Charsets.UTF_8)
-
-                    val extraBytes: ByteArray = byteArrayOf(prefix) + addressBytes
-
-                    val payloadNew = IntroductionRequestPayload(
-                        peer.address,
-                        _payoutNodePeer?.lanAddress ?: myEstimatedLan,
-                        _payoutNodePeer?.wanAddress ?: myEstimatedWan,
-                        true,
-                        network.wanLog.estimateConnectionType(),
-                        (globalTime % UShort.MAX_VALUE).toInt(),
-                        extraBytes
-                    )
-
-                    Log.i(
-                        "MusicCommunity",
-                        "Forward payout node info: ${peer.address} (${peer.mid})"
-                    )
-
-                    send(
-                        peer.address,
-                        serializePacket(MessageId.INTRODUCTION_REQUEST, payloadNew)
-                    )
+        if (address == null) {
+            val available = getPeers()
+            address = if (available.isNotEmpty()) {
+                // With a small chance, try to remedy any disconnected network phenomena.
+                if (Random.nextFloat() < 0.5f && endpoint.udpEndpoint != null) {
+                    DEFAULT_ADDRESSES.random()
+                } else {
+                    available.random().address
                 }
+            } else {
+                bootstrap()
+                return
             }
         }
 
-        if (isPayoutNodeEnabled() && packet.source is IPv4Address) {
-            val peerAddress = packet.source as IPv4Address;
+        val packet = if (isPayoutNodeEnabled()) {
+            val addressBytes = (PreferenceHelper.get(PREF_KEY_NODE_BITCOIN_ADDRESS, "")).toByteArray(Charsets.UTF_8)
+            val extraBytes = byteArrayOf(IntroductionExtraBytes.IS_PAYOUT_NODE) + addressBytes
 
-            Log.i(
-                "MusicCommunity (PAYOUT_NODE)",
-                "Received message from ${peerAddress}"
-            )
+            createIntroductionRequest(address, extraBytes)
+        } else if (_payoutNodePeer == null) {
+            val extraBytes: ByteArray = byteArrayOf(IntroductionExtraBytes.IS_LOOKING_FOR_PAYOUT_NODE)
 
-            val prefix: Byte = IntroductionExtraBytes.IS_PAYOUT_NODE
-            val addressBytes: ByteArray = (InMemoryCache.get(PREF_KEY_NODE_BITCOIN_ADDRESS) as String).toByteArray(Charsets.UTF_8)
+            createIntroductionRequest(address, extraBytes)
+        } else {
+            createIntroductionRequest(address)
+        }
+        send(address, packet)
+    }
 
-            val extraBytes: ByteArray = byteArrayOf(prefix) + addressBytes
-            val packetNew = createIntroductionRequest(peerAddress, extraBytes)
-            if (!discoveredAddressesContacted.containsKey(peerAddress)) {
-                send(peerAddress, packetNew)
-                Log.i(
-                    "MusicCommunity (PAYOUT_NODE)",
-                    "Someone asked about the node: ${peerAddress}"
-                )
-                discoveredAddressesContacted[peerAddress] = Date()
+    override fun onPacket(packet: Packet) {
+        val data = packet.data
+
+        val packetPrefix = data.copyOfRange(0, prefix.size)
+        if (!packetPrefix.contentEquals(prefix)) {
+            return
+        }
+
+        val msgId = data[prefix.size].toUByte().toInt()
+
+        run payoutNodeCheck@ {
+            if (_payoutNodePeer != null || isPayoutNodeEnabled()) {
+                return@payoutNodeCheck
+            }
+
+            when (msgId) {
+                MessageId.INTRODUCTION_REQUEST -> {
+                    val (peer, payload) =
+                        packet.getAuthPayload(IntroductionRequestPayload.Deserializer)
+
+                    if (payload.extraBytes.isEmpty()) {
+                        return@payoutNodeCheck
+                    }
+
+                    if (payload.extraBytes[0] == IntroductionExtraBytes.IS_PAYOUT_NODE) {
+                        val walletBytes = payload.extraBytes.drop(1).toByteArray()
+                        val address = walletBytes.toString(Charsets.UTF_8)
+
+                        Log.i(
+                            "Connectivity (SEARCHING)",
+                            "Found payout node: ${peer.address} (${peer.mid}), wallet address: $address"
+                        )
+
+                        _payoutNodePeer = peer
+                        InMemoryCache.put(PREF_KEY_NODE_BITCOIN_ADDRESS, address)
+                        if (_onPayoutNodePeerFound != null) {
+                            _onPayoutNodePeerFound?.invoke(peer, address)
+                        } else {
+                            _onPayoutNodePeerFoundCache.add(Pair(peer, address))
+                        }
+                    }
+                }
+                MessageId.INTRODUCTION_RESPONSE -> {
+                    val (peer, payload) =
+                        packet.getAuthPayload(IntroductionResponsePayload.Deserializer)
+
+                    if (payload.extraBytes.isEmpty()) {
+                        return@payoutNodeCheck
+                    }
+
+                    when (payload.extraBytes[0]) {
+                        IntroductionExtraBytes.IS_PAYOUT_NODE -> {
+                            val walletBytes = payload.extraBytes.drop(1).toByteArray()
+                            val address = walletBytes.toString(Charsets.UTF_8)
+
+                            Log.i(
+                                "Connectivity (SEARCHING)",
+                                "Found payout node: ${peer.address} (${peer.mid}), wallet address: $address"
+                            )
+
+                            _payoutNodePeer = peer
+                            InMemoryCache.put(PREF_KEY_NODE_BITCOIN_ADDRESS, address)
+                            if (_onPayoutNodePeerFound != null) {
+                                _onPayoutNodePeerFound?.invoke(peer, address)
+                            } else {
+                                _onPayoutNodePeerFoundCache.add(Pair(peer, address))
+                            }
+                        }
+                        IntroductionExtraBytes.KNOWS_PAYOUT_NODE -> {
+                            val addressBytes = payload.extraBytes.drop(1).toByteArray().toString(Charsets.UTF_8) // TODO: handle appropriately, walkTo address
+
+                            Log.i(
+                                "Connectivity (SEARCHING)",
+                                "Found payout node connection: ${peer.address} (${peer.mid}), node address: $addressBytes"
+                            )
+                        }
+                        else -> {}
+                    }
+                }
+                else -> {}
             }
         }
+
+        if (msgId != MessageId.INTRODUCTION_REQUEST) {
+            return super.onPacket(packet)
+        }
+
+        val (peer, payload) =
+            packet.getAuthPayload(IntroductionRequestPayload.Deserializer)
+
+        val newPeer = peer.copy(
+            lanAddress = payload.sourceLanAddress,
+            wanAddress = payload.sourceWanAddress
+        )
+
+        if (maxPeers < 0 || getPeers().size < maxPeers) {
+            addVerifiedPeer(newPeer)
+        }
+
+        val isLookingForPayoutNode = payload.extraBytes.isNotEmpty() &&
+                payload.extraBytes[0] == IntroductionExtraBytes.IS_LOOKING_FOR_PAYOUT_NODE
+        val packet = if (isLookingForPayoutNode && isPayoutNodeEnabled()) {
+            val addressBytes = (PreferenceHelper.get(PREF_KEY_NODE_BITCOIN_ADDRESS, "")).toByteArray(Charsets.UTF_8) // TODO: set when enabling payout node + remove from app
+            val extraBytes = byteArrayOf(IntroductionExtraBytes.IS_PAYOUT_NODE) + addressBytes
+
+            createIntroductionResponse(newPeer, payload.identifier, extraBytes = extraBytes)
+        } else if (isLookingForPayoutNode && _payoutNodePeer != null) {
+            val nodeAddressBytes = (_payoutNodePeer!!.address.ip + ":" + _payoutNodePeer!!.address.port).toByteArray(Charsets.UTF_8)
+            val extraBytes: ByteArray = byteArrayOf(IntroductionExtraBytes.KNOWS_PAYOUT_NODE) + nodeAddressBytes
+
+            createIntroductionResponse(newPeer, payload.identifier, extraBytes = extraBytes)
+        } else {
+            createIntroductionResponse(newPeer, payload.identifier)
+        }
+        send(peer, packet)
     }
 
     /**
@@ -321,6 +387,10 @@ class MusicCommunity(
         handler: (node: Peer, nodeBitcoinAddress: String) -> Unit
     ) {
         _onPayoutNodePeerFound = handler
+        for ((peer, address) in _onPayoutNodePeerFoundCache) {
+            handler(peer, address)
+        }
+        _onPayoutNodePeerFoundCache.clear()
     }
 
     /**
