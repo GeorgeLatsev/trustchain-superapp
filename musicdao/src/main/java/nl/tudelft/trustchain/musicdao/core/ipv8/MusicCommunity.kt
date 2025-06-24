@@ -180,7 +180,7 @@ class MusicCommunity(
         if (isPayoutNodeEnabled()) {
             val addressBytes = (PreferenceHelper.get(PREF_KEY_NODE_BITCOIN_ADDRESS, "")).toByteArray(Charsets.UTF_8)
             val extraBytes = byteArrayOf(IntroductionExtraBytes.IS_PAYOUT_NODE) + addressBytes
-
+          
             val packet = createIntroductionRequest(address, extraBytes)
 
             Log.i("Connectivity (PAYOUT_NODE)", "Walking to address: $address")
@@ -231,6 +231,11 @@ class MusicCommunity(
 
     override fun onPacket(packet: Packet) {
         val data = packet.data
+
+        val packetPrefix = data.copyOfRange(0, prefix.size)
+        if (!packetPrefix.contentEquals(prefix)) {
+            return
+        }
 
         val msgId = data[prefix.size].toUByte().toInt()
 

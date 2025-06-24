@@ -44,6 +44,22 @@ class FileProcessor {
             }
         }
 
+        fun getCsvFiles(path: Path): List<File>? {
+            val files = getFiles(path) ?: return null
+            val csvFiles =
+                files.toList().filter {
+                    it.extension == "csv"
+                }
+
+            return csvFiles.mapNotNull {
+                try {
+                    it
+                } catch (e: Exception) {
+                    null
+                }
+            }
+        }
+
         fun getTitle(mp3: Mp3File): String {
             val title = Util.getTitle(mp3)
             if (title != null) {

@@ -58,6 +58,9 @@ interface PayoutDao {
     @Query("SELECT transactionHash FROM ContributionEntity WHERE payoutId = :payoutId AND status = 'VERIFIED'")
     suspend fun getVerifiedContributionsTransactionHashesByPayoutId(payoutId: String): List<String>
 
+    @Query("SELECT * FROM ContributionEntity WHERE payoutId = :payoutId AND status = 'VERIFIED'")
+    suspend fun getVerifiedContributionsByPayoutId(payoutId: String): List<ContributionEntity>
+
     @Query("SELECT id FROM PayoutEntity WHERE payoutStatus = :status LIMIT 1")
     suspend fun getPayoutIdByStatus(status: PayoutEntity.PayoutStatus): String?
 
@@ -129,6 +132,9 @@ interface PayoutDao {
 
     @Query("SELECT * FROM ArtistPayoutEntity WHERE payoutId = :payoutId")
     fun getArtistPayoutsByPayoutId(payoutId: String): Flow<List<ArtistPayoutEntity>>
+
+    @Query("SELECT transactionHash FROM ContributionEntity WHERE status = 'UNVERIFIED'")
+    suspend fun getUnverifiedContributionsTransactionHashes(): List<String>
 
     @Query("SELECT * FROM ContributionEntity WHERE status = 'UNVERIFIED'")
     fun getUnverifiedContributions(): Flow<List<ContributionEntity>>

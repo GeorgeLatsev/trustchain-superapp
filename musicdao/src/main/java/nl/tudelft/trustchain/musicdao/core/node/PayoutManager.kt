@@ -1,33 +1,41 @@
 package nl.tudelft.trustchain.musicdao.core.node
 
 import android.content.Context
+import android.net.Uri
 import android.util.Log
+import androidx.core.content.FileProvider
 import androidx.core.content.edit
 import androidx.preference.PreferenceManager
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import nl.tudelft.ipv8.android.IPv8Android
-import nl.tudelft.trustchain.common.util.PreferenceHelper
 import nl.tudelft.trustchain.musicdao.core.ipv8.MusicCommunity
 import nl.tudelft.trustchain.musicdao.core.ipv8.blocks.payoutStatusUpdate.PayoutUpdateStatusBlock
 import nl.tudelft.trustchain.musicdao.core.ipv8.modules.contribution.ContributionMessage
 import nl.tudelft.trustchain.musicdao.core.node.persistence.ServerDatabase
 import nl.tudelft.trustchain.musicdao.core.node.persistence.entities.ContributionEntity
 import nl.tudelft.trustchain.musicdao.core.node.persistence.entities.PayoutEntity
+import nl.tudelft.trustchain.musicdao.core.node.persistence.entities.PayoutWithArtists
+import nl.tudelft.trustchain.musicdao.core.torrent.TorrentEngine
 import nl.tudelft.trustchain.musicdao.core.wallet.WalletService
 import nl.tudelft.trustchain.musicdao.core.wallet.WalletService.Companion.SATS_PER_BITCOIN
 import org.bitcoinj.core.Address
 import org.bitcoinj.core.Transaction
+import java.io.File
+import java.io.FileWriter
 import javax.inject.Inject
 import javax.inject.Named
 import javax.inject.Singleton
 
 @Singleton
 class PayoutManager
+@OptIn(DelicateCoroutinesApi::class)
 @Inject
 constructor(
     private val database: ServerDatabase,
@@ -36,7 +44,8 @@ constructor(
     private val payoutWalletService: WalletService,
     private val musicCommunity: MusicCommunity,
     @ApplicationContext
-    val context: Context
+    val context: Context,
+    val torrentEngine: TorrentEngine,
 ) {
     private val _currentPayoutId = MutableStateFlow<String?>(null)
 
@@ -89,7 +98,19 @@ constructor(
                 onTransactionReceived(tx.txId.toString(), sender, newBalance.value - prevBalance.value)
             }
         }
-        // TODO: check if there are any completed transactions when the service starts
+
+        coroutineScope.launch {
+            val unconfirmedContributions = database.payoutDao.getUnverifiedContributionsTransactionHashes()
+
+            for (transaction in unconfirmedContributions) {
+                val tx = walletService.userTransactions.value.find { it.transaction.txId.toString() == transaction }
+                if (tx != null) {
+                    val sender = getTransactionSenderAddress(tx.transaction) ?: continue
+                    onTransactionReceived(tx.transaction.txId.toString(), sender, tx.value.value)
+                }
+            }
+        }
+
     }
 
     private fun getTransactionSenderAddress(tx: Transaction): Address? {
@@ -169,22 +190,16 @@ constructor(
         Log.d("PayoutManager", "Setting payout status for ID $payoutId to $status")
         database.payoutDao.updatePayoutStatus(payoutId, status)
 
+        val torrentMagnet = preparePayoutTorrent(payoutId)
+        Log.i("PayoutManager", "Prepared torrent magnet for payout $payoutId: $torrentMagnet")
+
         when (status) {
             PayoutEntity.PayoutStatus.AWAITING_FOR_CONFIRMATION -> {
                 Log.d("PayoutManager", "Payout $payoutId is now awaiting confirmation")
                 _currentPayoutId.value = null;
                 getOrCreateNextPayout()
-                return PayoutEntity.PayoutStatus.AWAITING_FOR_CONFIRMATION
-            }
-            PayoutEntity.PayoutStatus.SUBMITTED -> {
+
                 val payout = database.payoutDao.getPayoutWithArtistsById(payoutId)
-                if (payout.artistPayouts.isEmpty()) {
-                    Log.e("PayoutManager", "No artist payouts found for payout ID $payoutId")
-                    return PayoutEntity.PayoutStatus.SUBMITTED
-
-                }
-
-                val txid = payoutWalletService.sendCoinsMulti(payout.artistPayouts.associate { it.artistAddress to (it.payoutAmount.toFloat() / SATS_PER_BITCOIN.toFloat()) }) // TODO: check limit and make multiple txes if needed
                 val artistSplits = payout.artistPayouts.associate { it.artistAddress to it.payoutAmount.toFloat() }
                 val transactionIds = database.payoutDao.getVerifiedContributionsTransactionHashesByPayoutId(payoutId)
 
@@ -192,8 +207,9 @@ constructor(
                     "payoutId" to payoutId,
                     "payoutStatus" to status.toString(),
                     "artistSplits" to artistSplits,
-                    "transactionIds" to transactionIds,
-                    "payoutTransactionId" to (txid ?: ""),
+                    "torrentMagnet" to torrentMagnet,
+                    "transactionIds" to transactionIds.take(100), // limit to 100 transactions to avoid too large blocks
+                    "payoutTransactionId" to "",
                 )
 
                 musicCommunity.createProposalBlock(
@@ -202,10 +218,53 @@ constructor(
                     IPv8Android.getInstance().myPeer.publicKey.keyToBin()
                 )
 
-                Log.d("transaction", "transaction is: $transaction")
+                return PayoutEntity.PayoutStatus.AWAITING_FOR_CONFIRMATION
+            }
+            PayoutEntity.PayoutStatus.SUBMITTED -> {
+                val payout = database.payoutDao.getPayoutWithArtistsById(payoutId)
+                if (payout.artistPayouts.isEmpty()) {
+                    Log.e("PayoutManager", "No artist payouts found for payout ID $payoutId")
+                    val transaction = mutableMapOf(
+                        "payoutId" to payoutId,
+                        "payoutStatus" to status.toString(),
+                        "artistSplits" to emptyMap<String, Float>(),
+                        "torrentMagnet" to torrentMagnet,
+                        "transactionIds" to emptyList<String>(),
+                        "payoutTransactionId" to "",
+                    )
+
+                    musicCommunity.createProposalBlock(
+                        PayoutUpdateStatusBlock.BLOCK_TYPE,
+                        transaction,
+                        IPv8Android.getInstance().myPeer.publicKey.keyToBin()
+                    )
+
+                    return PayoutEntity.PayoutStatus.SUBMITTED
+                }
+
+                val txid = payoutWalletService.sendCoinsMulti(payout.artistPayouts.associate { it.artistAddress to (it.payoutAmount.toFloat() / SATS_PER_BITCOIN.toFloat()) }) // TODO: check limit and make multiple txes if needed
 
                 if (txid != null) {
                     Log.d("PayoutManager", "Successfully sent payout for ID $payoutId with txid $txid")
+
+                    val artistSplits = payout.artistPayouts.associate { it.artistAddress to it.payoutAmount.toFloat() }
+                    val transactionIds = database.payoutDao.getVerifiedContributionsTransactionHashesByPayoutId(payoutId)
+
+                    val transaction = mutableMapOf(
+                        "payoutId" to payoutId,
+                        "payoutStatus" to status.toString(),
+                        "artistSplits" to artistSplits,
+                        "torrentMagnet" to torrentMagnet,
+                        "transactionIds" to transactionIds.take(100), // limit to 100 transactions to avoid too large blocks
+                        "payoutTransactionId" to txid,
+                    )
+
+                    musicCommunity.createProposalBlock(
+                        PayoutUpdateStatusBlock.BLOCK_TYPE,
+                        transaction,
+                        IPv8Android.getInstance().myPeer.publicKey.keyToBin()
+                    )
+
                     return PayoutEntity.PayoutStatus.SUBMITTED
                 } else {
                     Log.e("PayoutManager", "Failed to send payout for ID $payoutId, reverting to awaiting confirmation")
@@ -219,5 +278,64 @@ constructor(
                 return null
             }
         }
+    }
+
+    @OptIn(DelicateCoroutinesApi::class)
+    suspend fun preparePayoutTorrent(payoutId: String): String? {
+        val tempDir = File(context.cacheDir, "temp_files")
+        if (!tempDir.exists()) tempDir.mkdirs()
+
+        val contributions = database.payoutDao.getVerifiedContributionsByPayoutId(payoutId);
+
+        val contributionsFile = File(context.cacheDir, "${payoutId}_contributions.csv")
+        withContext(Dispatchers.IO) {
+            FileWriter(contributionsFile).use { writer ->
+                writer.appendLine("transactionHash,signature,artistSplits,donationAmount")
+
+                for (contribution in contributions) {
+                    val artistSplitsString = contribution.artistSplits.entries.joinToString(";") { "${it.key}:${it.value}" }
+                    val donationAmountString = contribution.donationAmount?.toString() ?: ""
+
+                    writer.appendLine(
+                        listOf(
+                            contribution.transactionHash,
+                            contribution.signature,
+                            artistSplitsString,
+                            donationAmountString
+                        ).joinToString(",")
+                    )
+                }
+            }
+        }
+
+        val payout = database.payoutDao.getPayoutWithArtistsById(payoutId)
+        val splitsFile = File(context.cacheDir, "${payoutId}_splits.csv")
+        withContext(Dispatchers.IO) {
+            FileWriter(splitsFile).use { writer ->
+                writer.appendLine("artistAddress,payoutAmount")
+
+                for (artistPayout in payout.artistPayouts) {
+                    writer.appendLine("${artistPayout.artistAddress},${artistPayout.payoutAmount}")
+                }
+            }
+        }
+
+        val uris = listOf(contributionsFile, splitsFile).map { file ->
+            FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file
+            )
+        }
+        val root = torrentEngine.simulateDownload(context, uris)
+        if (root == null) {
+            Log.d("PayoutManager", "preparePayoutTorrent: could not simulate download")
+            return null
+        }
+
+        val magnet = root.second.makeMagnetUri()
+        torrentEngine.download(magnet, root.first)
+
+        return magnet
     }
 }

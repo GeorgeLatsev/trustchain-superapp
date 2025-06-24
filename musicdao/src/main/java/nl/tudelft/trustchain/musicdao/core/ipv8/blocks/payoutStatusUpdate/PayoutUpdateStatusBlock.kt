@@ -7,6 +7,7 @@ data class PayoutUpdateStatusBlock(
     val payoutStatus: String,
     val artistSplits: Map<String, Float>,
     val transactionIds: List<String>,
+    val torrentMagnet: String,
     val payoutTransactionId: String? = null
 ) {
     companion object {
@@ -17,6 +18,7 @@ data class PayoutUpdateStatusBlock(
             val payoutStatus = transaction["payoutStatus"] as String
             val artistSplits = transaction["artistSplits"] as Map<String, Float>
             val transactionIds = transaction["transactionIds"] as List<String>
+            val torrentMagnet = transaction["torrentMagnet"] as String
             val payoutTransactionId = transaction["payoutTransactionId"] as? String
 
             return PayoutUpdateStatusBlock(
@@ -24,6 +26,7 @@ data class PayoutUpdateStatusBlock(
                 payoutStatus,
                 artistSplits,
                 transactionIds,
+                torrentMagnet,
                 payoutTransactionId
             )
         }
