@@ -6,29 +6,25 @@ In the `MusicCommunity`, nodes can operate in two roles:
 
 ## How Payout Node Discovery Works
 
-1. **Role Announcement via Introduction Requests**  
-   Each node announces its role during the IPv8 introduction process:
-    - **Payout Node** sets the extraBytes to be `IS_PAYOUT_NODE`(0x01) + its Bitcoin address.
-    - **Regular Nodes** sets the extraBytes to be `IS_LOOKING_FOR_PAYOUT_NODE`(0x02) to indicate they are searching for a payout node. 
-Once they find it their next introduction requests dont include the extra bytes.
+To enable discovery of payout nodes over IPv8, we use the `extraBytes` field in `IntroductionRequest` and `IntroductionResponse` payloads.
 
-2. **Discovery Flow**  
-   When a regular node receives an introduction request:
-    - If it **doesn't know the payout node**, and in the extraBytes it finds `IS_PAYOUT_NODE`(0x01), it stores which peer is the payout node and it's Bitcoin address.
-    - If it **knows the payout node** (previously discovered), and recieves a request with extraBytes containing `IS_LOOKING_FOR_PAYOUT_NODE`(0x02), it forwards this information to the requester (sends an introduction req impersonating the payout node).
+We have introduced the following extraBytes values to identify the type of peer:
+| Flag | Value | Description |
+|------|-------|-------------|
+| IS_PAYOUT_NODE | 0x01 | Indicates that the peer is a payout node and includes its Bitcoin address. |
+| IS_LOOKING_FOR_PAYOUT_NODE | 0x02 | Indicates that the peer is looking for a payout node. |
+| KNOWS_PAYOUT_NODE | 0x03 | Indicates that the peer knows the payout node and includes its peer address. |
 
-    When a payout node receives an ipv4 message:
-    - If the payout node hasn't discovered the sender before it send them a introduction request with extraBytes set to `IS_PAYOUT_NODE`(0x01) + its Bitcoin address.
-
-
-
-3. **Caching**  
-   Regular nodes cache the payout node's Bitcoin address once discovered to avoid redundant searches.
-
-
-## Key Components
-- **`walkTo()`**: Sends introduction requests with role info following the random walk discovery.
-- **`onPacket()`**: Handles incoming introductions and manages discovery logic.
+We override IPv8 methods to implement peer discovery:
+- When sending an introduction request (implemented in walkTo() and getNewIntroduction()):
+   * If the peer is a payout node, it sets extraBytes to 0x01 (IS_PAYOUT_NODE) + its BTC address.
+   * If the peer is looking for a payout node, it sets extraBytes to 0x02 (IS_LOOKING_FOR_PAYOUT_NODE).
+- When receiving an introduction request (implemented in onPacket()):
+   * If extraBytes contain 0x01 (IS_PAYOUT_NODE), the peer stores the payout node's peer address and BTC address.
+   * If extraBytes contain 0x02 (IS_LOOKING_FOR_PAYOUT_NODE), and the peer knows a payout node, it responds with 0x03 (KNOWS_PAYOUT_NODE) and the known node’s peer address. If the peer is a payout node, it sends 0x01 (IS_PAYOUT_NODE) + its BTC address instead.
+- When receiving an introduction response (implemented in onPacket()):
+   * If extraBytes contain 0x01 (IS_PAYOUT_NODE), the peer stores the payout node's peer address and BTC address.
+   * If extraBytes contain 0x03 (KNOWS_PAYOUT_NODE), the peer can walk to the payout node’s peer address.
 
 ## Summary
 This mechanism ensures that regular nodes efficiently discover and communicate with the payout node without relying on centralized infrastructure, maintaining the decentralized nature of the network.

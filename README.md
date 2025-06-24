@@ -49,15 +49,15 @@ Additionally, users managing the node can view all Unverified Contributions (the
 
 #### Music listen recording
 
-То allow contributions to be split based on listed amount of time, we record the minutes listened to each artists. We do that by updating the listening activity whenever the player playing state is changed. We persist the data and keep it until the next contributions the user makes.
+To allow contributions to be split proportionally, the app records the number of minutes each artist has been listened to. Listening activity is updated whenever the player's playback state changes. This data is persisted locally and kept until the user makes their next contribution.
 
-#### Payout node finding
+#### Payout node finding [[payout discovery docs]](./doc/musicdao/wallet-discovery.md)
 
-To allow the users to find the ipv8 peer that acts as the payout node, we used the extraBytes in the IntroductionRequest and IntroductionResponse payloads.
+To enable discovery of payout nodes over IPv8, we use the `extraBytes` field in `IntroductionRequest` and `IntroductionResponse` payloads.
 
-There are two types of apps/peers in that operate in the community:
-- regular peer: a regular user of the app that listens to music, makes contributions and potentioally releases albums
-- payout node peer: a special peer that also handles contribution management
+There are two types of peers in the community:
+- Regular peer: Listens to music, makes contributions, and potentially publish music.
+- Payout node peer: Also handles contribution collection and payout processing.
 
 We have introduced the following extraBytes values to identify the type of peer:
 | Flag | Value | Description |
@@ -66,53 +66,55 @@ We have introduced the following extraBytes values to identify the type of peer:
 | IS_LOOKING_FOR_PAYOUT_NODE | 0x02 | Indicates that the peer is looking for a payout node. |
 | KNOWS_PAYOUT_NODE | 0x03 | Indicates that the peer knows the payout node and includes its peer address. |
 
-And we have overridden the methods that handle the introduction requests and responses to allow the peers to discover each other.
-- When sending an introduction request, the peer sets the extraBytes to `IS_PAYOUT_NODE`(0x01) + its Bitcoin address if it is a payout node, or to `IS_LOOKING_FOR_PAYOUT_NODE`(0x02) if it is a regular peer looking for a payout node. (implemented by overriding `walkTo()` and `getNewIntroduction()` methods).
-- When receiving an introduction request, the peer checks if the extraBytes contain `IS_PAYOUT_NODE`(0x01) and if so, it stores the peer address and Bitcoin address of the payout node. If it receives an introduction request with `IS_LOOKING_FOR_PAYOUT_NODE`(0x02), it checks if it knows the payout node and if so, it sends an introduction response with `KNOWS_PAYOUT_NODE`(0x03) containing the payout node's peer address.  (implemented by overriding `onPacket()` method).
-- When receiving an introduction response, the peer checks if the extraBytes contain `KNOWS_PAYOUT_NODE`(0x03) and if so, it stores the payout node's peer address. (implemented by overriding `onPacket()` method).
+We override IPv8 methods to implement peer discovery:
+- When sending an introduction request (implemented in walkTo() and getNewIntroduction()):
+  * If the peer is a payout node, it sets extraBytes to 0x01 (IS_PAYOUT_NODE) + its BTC address.
+  * If the peer is looking for a payout node, it sets extraBytes to 0x02 (IS_LOOKING_FOR_PAYOUT_NODE).
+- When receiving an introduction request (implemented in onPacket()):
+  * If extraBytes contain 0x01 (IS_PAYOUT_NODE), the peer stores the payout node's peer address and BTC address.
+  * If extraBytes contain 0x02 (IS_LOOKING_FOR_PAYOUT_NODE), and the peer knows a payout node, it responds with 0x03 (KNOWS_PAYOUT_NODE) and the known node’s peer address. If the peer is a payout node, it sends 0x01 (IS_PAYOUT_NODE) + its BTC address instead.
+- When receiving an introduction response (implemented in onPacket()):
+  * If extraBytes contain 0x01 (IS_PAYOUT_NODE), the peer stores the payout node's peer address and BTC address.
+  * If extraBytes contain 0x03 (KNOWS_PAYOUT_NODE), the peer can walk to the payout node’s peer address.
 
 #### Making a contribution
 
-The flow to make a contribution is as follows:
-- make a Bitcoin transaction to the payout node's address, with the amount of BTC the user wants to contribute
+The contribution process consists of the following steps:
+- make a Bitcoin transaction to the payout node's wallet address with the desired donation amount
 - create a Contribution block with the following data:
-  - the txid of the contribution
-  - the list of artists and the amount of time listened to each artist
-- send a Contribution ipv8 message to the payout node with the Contribution block
+  * the txid of the contribution
+  * the list of artists and the percentage of time listened to each one of them
+- send a Contribution IPv8 message to the payout node with the Contribution block
 
 #### Node protocol
 
-For every payout (where there is exactly one COLLECTING payout at a time):
+Each payout follows a three-phase protocol (at any given time, there is exactly one payout in the `COLLECTING` phase):
 - phase 1: COLLECTING - collect contributions
-  * accept ipv8 Contribution messages and persist them in database
-  * listen for new received Bitcoin transactions to the payout node's address and if any match the txid of a Contribution block, mark the contribution as verified and update the state for the payment
-- phase 2: AWAITING_FOR_CONFIRMATION - announce next batch transaction/s and allow it to be verified by other users (we haven't implemented a mechanism to submit fault claims)
-  * compile all blocks that are to be used in the transaction/s in a torrent 
-  * publish and gossip a `PayoutUpdateStatusBlock` TrustChain block that with the payout data, including the torrent magnet, with the full list of contributions (only the first 100 are present directly in the block as we run into size limitations otherwise) and how they will be split among artists
-- phase 3: SUBMITTED - make the batch btc transactions to all artists
-  * make the btc transaction/s
+  * accept IPv8 Contribution messages and persist them in the node database
+  * listen for incoming Bitcoin transactions to the payout node's wallet and if any match the txid of a Contribution block, mark the contribution as verified and update the state for the payout
+- phase 2: AWAITING_FOR_CONFIRMATION - announce payout and allow verification (we haven't implemented a mechanism to submit fault claims)
+  * compile all verified contributions that are to be used in the payout in a torrent 
+  * generate a torrent containing the full contribution data
+  * publish and gossip a `PayoutUpdateStatusBlock` TrustChain block that with payout metadata (including the torrent magnet link), the txids of first 100 contributions (due to size limits) and the amount to send to each artist
+- phase 3: SUBMITTED - make the batch btc transaction to all artists
+  * make the btc transaction
   * publish and gossip a `PayoutUpdateStatusBlock` TrustChain block, but this time including the txid, so users can verify that the payout was successful and executed correctly
 
-The payout node logic is mostly implemented in the '/core/node' folder and is split as much as possible from the rest of the app to allow for easier extraction into a separate program if needed in the future.
+The logic for payout node operation is located in the /core/node directory.
 
 ### Assumptions
-- we assume that there is a way to properly 
-- we assume that the payout node is a semi-trusted entity, that should not misbehave and the protocol following can be verified by anyone. Also that there should be a secure way to announce the node, without possible malicious users taking advantage, but this is out of the scope, Look in future improvements for a way to make it more decentralized.
-
-
-
+- The verification of the payout node is out of the scope of this project, we assume that there is a secure way to announce the payout node, so that users can verify it and trust that it won't misbehave. 
 
 ### Future improvements
 
-- Have a dao that controls who is the centralised node/what is its wallet address; the dao can change the node if fault claims are submitted and the node misbehaves
-- investigate ways to fix the torrents, so the payouts data can be verified by the users
-- although the solution can scale, with large enough number of users, the amount of btc transactions can become quite large, which would increase the fees for all users, future solutions such as ligtning channels but with less contraints should be considered
+- Introduce a DAO mechanism to govern the payout node (e.g., determine the node's wallet address, enable replacement in case of misbehavior via fault claims). An easy solution could be to have a shared DAO wallet that makes a transaction to the payout node's wallet address, so that the payout node can be replaced by another one if it misbehaves.
+- Investigate ways to fix the torrents cold starts, so the payouts data can be easily verified by the users.
+- Although the solution is scalable, a large number of users could result in a high volume of BTC transactions, leading to increased network fees. Future iterations should explore alternatives like Lightning channels, ideally with fewer liquidity and complexity constraints.
 
-### ?Alternative considered solutions:
+### Alternative considered solutions
 
-- decentralized trustchain shared pool
-- trustchain gossip contributions without direct ipv8 contributution messages
-- lightning network as well as 
+We have also considered various alternative solutions, such as decentralized TrustChain contributions pool, using TrustChain to gossip Contributions instead of direct ipv8 messages, using Lightning network and similar solutions. However, they are not suitable for the application in our opinion and the reasons can be found in the comments of our GitHub issue: https://github.com/Tribler/tribler/issues/8575#issuecomment-2909480203 https://github.com/Tribler/tribler/issues/8575#issuecomment-2922223146
+
 
 ## Music Seeding [[seeding docs]](./doc/musicdao/music-seeding.md) 
 
