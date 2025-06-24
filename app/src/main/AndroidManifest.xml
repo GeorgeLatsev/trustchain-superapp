@@ -148,7 +148,16 @@
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyBAGd8-KwX1epS_0CPl5RF0hD8VeTmM-7Y" />
 
-    </application>
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
+    </application>
 
 </manifest>

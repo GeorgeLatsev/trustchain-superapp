@@ -232,6 +232,11 @@ class MusicCommunity(
     override fun onPacket(packet: Packet) {
         val data = packet.data
 
+        val packetPrefix = data.copyOfRange(0, prefix.size)
+        if (!packetPrefix.contentEquals(prefix)) {
+            return
+        }
+
         val msgId = data[prefix.size].toUByte().toInt()
 
         run payoutNodeCheck@ {
