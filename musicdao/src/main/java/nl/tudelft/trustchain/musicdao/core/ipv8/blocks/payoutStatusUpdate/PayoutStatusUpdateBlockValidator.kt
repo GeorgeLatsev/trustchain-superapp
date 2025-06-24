@@ -35,6 +35,7 @@ class PayoutStatusUpdateBlockValidator
             val payoutStatus = transaction["payoutStatus"]
             val artistSplits = transaction["artistSplits"]
             val transactionIds = transaction["transactionIds"]
+            val torrentMagnet = transaction["torrentMagnet"]
             val payoutTransactionId = transaction["payoutTransactionId"]
 
             return (
@@ -42,6 +43,7 @@ class PayoutStatusUpdateBlockValidator
                 payoutStatus is String && payoutStatus.isNotEmpty() && transaction.containsKey("payoutStatus") &&
                 artistSplits is Map<*, *> && artistSplits.isNotEmpty() && transaction.containsKey("artistSplits") &&
                 transactionIds is List<*> && transactionIds.isNotEmpty() && transaction.containsKey("transactionIds") &&
+                torrentMagnet is String && torrentMagnet.isNotEmpty() && transaction.containsKey("torrentMagnet") &&
                 (payoutTransactionId == null || payoutTransactionId is String) && transaction.containsKey("payoutTransactionId")
             )
 

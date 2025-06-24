@@ -93,6 +93,11 @@ class DownloadFinishUseCase(
                     Log.d("MusicDao", "DownloadFinishUseCase: updated album with $updatedAlbumEntity")
                     database.dao.update(updatedAlbumEntity)
                 }
+
+                val root = Paths.get("${cachePath.getPath()}/torrents/$infoHash")
+
+                val csvFiles = FileProcessor.getCsvFiles(root)
+                Log.d("MusicDao", "DownloadFinishUseCase: csv files: $csvFiles")
             }
         }
     }
