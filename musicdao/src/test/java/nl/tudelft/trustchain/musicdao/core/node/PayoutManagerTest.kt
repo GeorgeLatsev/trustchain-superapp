@@ -7,7 +7,6 @@ package nl.tudelft.trustchain.musicdao.core.node
  import kotlinx.coroutines.ExperimentalCoroutinesApi
  import kotlinx.coroutines.flow.MutableStateFlow
  import kotlinx.coroutines.test.runBlockingTest
- import nl.tudelft.ipv8.attestation.trustchain.TrustChainBlock
  import nl.tudelft.trustchain.musicdao.core.ipv8.MusicCommunity
  import nl.tudelft.trustchain.musicdao.core.node.persistence.ServerDatabase
  import nl.tudelft.trustchain.musicdao.core.node.persistence.PayoutDao
@@ -86,21 +85,17 @@ package nl.tudelft.trustchain.musicdao.core.node
 
      @Test
      fun testIsEnabledReturnsFalse_whenPreferenceNotSet() {
-         // Arrange
          val preferences = mockk<SharedPreferences>()
          every { PreferenceManager.getDefaultSharedPreferences(context) } returns preferences
          every { preferences.getBoolean(PREF_KEY_IS_NODE_ENABLED, false) } returns false
 
-         // Act
          val result = payoutManager.isEnabled()
 
-         // Assert
          assertFalse(result)
      }
 
      @Test
      fun testEnable_setsPreferencesCorrectly() {
-         // Arrange
          val preferences = mockk<SharedPreferences>()
          val editor = mockk<SharedPreferences.Editor>()
          every { PreferenceManager.getDefaultSharedPreferences(context) } returns preferences
@@ -110,39 +105,30 @@ package nl.tudelft.trustchain.musicdao.core.node
          every { editor.apply() } just Runs
          every { payoutWalletService.protocolAddress().toString() } returns "testAddress"
 
-         // Act
          payoutManager.enable()
 
-         // Assert
          verify { editor.putBoolean(PREF_KEY_IS_NODE_ENABLED, true) }
          verify { editor.putString(PREF_KEY_NODE_BITCOIN_ADDRESS, "testAddress") }
      }
 
      @Test
      fun testGetOrCreateNextPayout_returnsCurrentId_whenAlreadySet() = runBlockingTest {
-         // Arrange
          val field = PayoutManager::class.java.getDeclaredField("_currentPayoutId")
          field.isAccessible = true
          val stateFlow = field.get(payoutManager) as MutableStateFlow<String?>
          stateFlow.value = "existingId"
 
-         // Act
          val result = payoutManager.getOrCreateNextPayout()
 
-         // Assert
          assertEquals("existingId", result)
          coVerify(exactly = 0) { payoutDao.getCurrentCollectingPayoutId() }
      }
 
      @Test
      fun testGetOrCreateNextPayout_returnsExistingFromDb() = runBlockingTest {
-         // Arrange
          coEvery { payoutDao.getCurrentCollectingPayoutId() } returns "dbPayoutId"
-
-         // Act
          val result = payoutManager.getOrCreateNextPayout()
 
-         // Assert
          assertEquals("dbPayoutId", result)
          coVerify(exactly = 0) { payoutDao.createPayout(any()) }
      }

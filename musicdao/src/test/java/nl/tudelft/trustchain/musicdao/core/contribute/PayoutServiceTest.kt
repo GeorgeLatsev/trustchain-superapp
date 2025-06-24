@@ -40,7 +40,7 @@ import org.mockito.kotlin.verify
      @Test
      fun `init sets node address and payoutWalletAddress when payout node is enabled`() = runTest {
          whenever(payoutManager.isEnabled()).thenReturn(true)
-         whenever(musicCommunity.myPeer).thenReturn(mock()) // myPeer.address needed
+         whenever(musicCommunity.myPeer).thenReturn(mock())
          whenever(musicCommunity.myPeer.address).thenReturn(mock())
          whenever(musicCommunity.myPeer.address.toString()).thenReturn("1.2.3.4:1234")
          whenever(payoutWalletService.protocolAddress()).thenReturn(mock())
