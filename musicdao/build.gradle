@@ -103,6 +103,10 @@ dependencies {
     testImplementation "org.mockito:mockito-inline:5.2.0"
     testImplementation "androidx.arch.core:core-testing:2.2.0"
     testImplementation "org.mockito.kotlin:mockito-kotlin:5.2.0"
+    testImplementation "org.junit.jupiter:junit-jupiter-api:5.10.2"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.10.2"
+    testImplementation "io.mockk:mockk:1.13.10"
+    testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1"
 
     // Reading MP3 metadata
     api 'com.mpatric:mp3agic:0.9.1'
