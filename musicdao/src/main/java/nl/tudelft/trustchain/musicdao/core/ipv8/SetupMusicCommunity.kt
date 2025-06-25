@@ -40,8 +40,10 @@ class SetupMusicCommunity
 
                     torrentEngine.download(update.torrentMagnet);
 
-                    GlobalScope.launch {
-                        db.dao.markContributionsAsSatisfied(update.transactionIds)
+                    if (update.payoutStatus == "SUBMITTED") {
+                        GlobalScope.launch {
+                            db.dao.markContributionsAsSatisfied(update.transactionIds)
+                        }
                     }
                 }
             })
