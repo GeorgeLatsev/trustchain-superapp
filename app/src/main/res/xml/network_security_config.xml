@@ -10,5 +10,7 @@
 
         <!--        This is for RegTest faucet, to claim some starter money -->
         <domain includeSubdomains="true">95.179.182.243</domain>
+        <domain includeSubdomains="true">192.168.47.1</domain>
+        <domain includeSubdomains="true">give-coordinates.gl.at.ply.gg</domain>
     </domain-config>
 </network-security-config>

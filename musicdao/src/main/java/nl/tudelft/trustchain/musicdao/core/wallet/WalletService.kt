@@ -16,6 +16,7 @@ import org.bitcoinj.wallet.Wallet
 import java.io.IOException
 import java.io.InputStream
 import java.math.BigDecimal
+import java.net.HttpURLConnection
 import java.net.URL
 import java.util.*
 
@@ -31,6 +32,9 @@ class WalletService(val config: WalletConfig, private val app: WalletAppKit) {
     }
 
     init {
+        app.peerGroup().addConnectedEventListener { peer, _ ->
+            Log.i("MusicDao2", "Connected to peer: ${peer.address}")
+        }
         app.setDownloadListener(
             object : DownloadProgressTracker() {
                 override fun progress(
@@ -186,7 +190,12 @@ class WalletService(val config: WalletConfig, private val app: WalletAppKit) {
 
         return withContext(Dispatchers.IO) {
             try {
-                val con: InputStream? = obj.openStream()
+                val connection = obj.openConnection() as HttpURLConnection
+                connection.setRequestProperty("ngrok-skip-browser-warning", "true")
+                connection.connectTimeout = 5000
+                connection.readTimeout = 5000
+
+                val con = connection.inputStream
                 con?.close()
                 Log.d(
                     "MusicDao",

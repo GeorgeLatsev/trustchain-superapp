@@ -38,8 +38,8 @@ const val MAIN_NET_WALLET_NAME = "forwarding-service"
 const val MIN_BLOCKCHAIN_PEERS_TEST_NET = 5
 const val MIN_BLOCKCHAIN_PEERS_REG_TEST = 1
 const val MIN_BLOCKCHAIN_PEERS_PRODUCTION = 5
-const val REG_TEST_FAUCET_IP = "131.180.27.224"
-const val REG_TEST_FAUCET_DOMAIN = "taproot.tribler.org"
+const val REG_TEST_FAUCET_IP = "192.168.68.108"
+const val REG_TEST_FAUCET_DOMAIN = "mammoth-live-firmly.ngrok-free.app"
 
 var minBlockchainPeers = MIN_BLOCKCHAIN_PEERS_TEST_NET
 
@@ -128,6 +128,7 @@ class WalletManager(
             try {
                 val localHost = InetAddress.getByName(REG_TEST_FAUCET_IP)
                 kit.setPeerNodes(PeerAddress(params, localHost, params.port))
+                Log.i("MusicDAO2", "Coin: set peer nodes to $REG_TEST_FAUCET_IP $localHost ${params.port}")
             } catch (e: UnknownHostException) {
                 throw RuntimeException(e)
             }

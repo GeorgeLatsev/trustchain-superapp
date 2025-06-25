@@ -38,7 +38,7 @@ android {
 
 
 //        buildConfigField "String", "BITCOIN_FAUCET", "\"http://134.122.59.107:3000\""
-        buildConfigField "String", "BITCOIN_FAUCET", "\"https://taproot.tribler.org\""
+        buildConfigField "String", "BITCOIN_FAUCET", "\"https://mammoth-live-firmly.ngrok-free.app\""
 
         // 10.0.2.2 - IP address of the host system on Android emulator
         // Refer to included Docker Compose to launch the nodes locally

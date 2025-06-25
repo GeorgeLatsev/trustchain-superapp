@@ -14,8 +14,8 @@ data class WalletConfig(
     companion object {
         val DEFAULT_NETWORK_PARAMS = RegTestParams.get()
         const val DEFAULT_FILE_PREFIX = "regtest-musicdao"
-        const val DEFAULT_REGTEST_BOOTSTRAP_IP = "131.180.27.224"
-        const val DEFAULT_REGTEST_BOOTSTRAP_PORT = "3000"
-        const val DEFAULT_FAUCET_ENDPOINT = "https://taproot.tribler.org"
+        const val DEFAULT_REGTEST_BOOTSTRAP_IP = "192.168.68.108"
+        const val DEFAULT_REGTEST_BOOTSTRAP_PORT = "18443"
+        const val DEFAULT_FAUCET_ENDPOINT = "https://mammoth-live-firmly.ngrok-free.app"
     }
 }
