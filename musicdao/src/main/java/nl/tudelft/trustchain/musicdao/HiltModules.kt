@@ -41,29 +41,31 @@ class HiltModules {
     @Singleton
     fun provideDatabase(
         @ApplicationContext applicationContext: Context
-    ): CacheDatabase {
-        return Room.databaseBuilder(
-            applicationContext,
-            CacheDatabase::class.java,
-            "musicdao-database"
-        ).fallbackToDestructiveMigration()
+    ): CacheDatabase =
+        Room
+            .databaseBuilder(
+                applicationContext,
+                CacheDatabase::class.java,
+                "musicdao-database"
+            ).fallbackToDestructiveMigration()
             .addTypeConverter(Converters(GsonParser(Gson())))
             .build()
-    }
 
     @Provides
     @Singleton
     fun provideServerDatabase(
         @ApplicationContext applicationContext: Context
-    ): ServerDatabase {
-        return Room.databaseBuilder(
-            applicationContext,
-            ServerDatabase::class.java,
-            "musicdao-server-database"
-        ).fallbackToDestructiveMigration()
-            .addTypeConverter(nl.tudelft.trustchain.musicdao.core.node.persistence.parser.Converters(GsonParser(Gson())))
-            .build()
-    }
+    ): ServerDatabase =
+        Room
+            .databaseBuilder(
+                applicationContext,
+                ServerDatabase::class.java,
+                "musicdao-server-database"
+            ).fallbackToDestructiveMigration()
+            .addTypeConverter(
+                nl.tudelft.trustchain.musicdao.core.node.persistence.parser
+                    .Converters(GsonParser(Gson()))
+            ).build()
 
     @Provides
     @Singleton
@@ -73,7 +75,8 @@ class HiltModules {
         val settingsPack = SettingsPack()
 
         val port =
-            PreferenceManager.getDefaultSharedPreferences(applicationContext)
+            PreferenceManager
+                .getDefaultSharedPreferences(applicationContext)
                 .getString("musicdao_port", "10129")
                 ?.toIntOrNull()
         if (port != null) {
@@ -110,18 +113,15 @@ class HiltModules {
 
     @Provides
     @Singleton
-    fun musicCommunity(): MusicCommunity {
-        return IPv8Android.getInstance().getOverlay()
+    fun musicCommunity(): MusicCommunity =
+        IPv8Android.getInstance().getOverlay()
             ?: throw IllegalStateException("MusicCommunity is not configured")
-    }
 
     @Provides
     @Singleton
     fun path(
         @ApplicationContext applicationContext: Context
-    ): CachePath {
-        return CachePath(applicationContext)
-    }
+    ): CachePath = CachePath(applicationContext)
 
     @Provides
     @Singleton
@@ -130,17 +130,21 @@ class HiltModules {
         cachePath: CachePath,
         walletService: WalletService,
         @ApplicationContext applicationContext: Context
-    ): DownloadFinishUseCase {
-        return DownloadFinishUseCase(database = database, cachePath = cachePath, walletService = walletService, context = applicationContext)
-    }
+    ): DownloadFinishUseCase =
+        DownloadFinishUseCase(
+            database = database,
+            cachePath = cachePath,
+            walletService = walletService,
+            context = applicationContext
+        )
 
     @Provides
     @Singleton
     fun provideWalletService(
         @ApplicationContext applicationContext: Context,
         walletManager: WalletManager
-    ): WalletService {
-        return WalletService(
+    ): WalletService =
+        WalletService(
             WalletConfig(
                 networkParams = DEFAULT_NETWORK_PARAMS,
                 filePrefix = DEFAULT_FILE_PREFIX,
@@ -151,7 +155,6 @@ class HiltModules {
             ),
             walletManager.kit
         )
-    }
 
     @Provides
     @Singleton
@@ -161,17 +164,18 @@ class HiltModules {
         @Named("payoutWalletManager")
         walletManager: WalletManager
     ): WalletService {
-        val walletService =  WalletService(
-            WalletConfig(
-                networkParams = DEFAULT_NETWORK_PARAMS,
-                filePrefix = DEFAULT_FILE_PREFIX + "payout_",
-                cacheDir = Paths.get("${applicationContext.cacheDir}").toFile(),
-                regtestFaucetEndPoint = DEFAULT_FAUCET_ENDPOINT,
-                regtestBootstrapIp = DEFAULT_REGTEST_BOOTSTRAP_IP,
-                regtestBootstrapPort = DEFAULT_REGTEST_BOOTSTRAP_PORT
-            ),
-            walletManager.kit
-        )
+        val walletService =
+            WalletService(
+                WalletConfig(
+                    networkParams = DEFAULT_NETWORK_PARAMS,
+                    filePrefix = DEFAULT_FILE_PREFIX + "payout_",
+                    cacheDir = Paths.get("${applicationContext.cacheDir}").toFile(),
+                    regtestFaucetEndPoint = DEFAULT_FAUCET_ENDPOINT,
+                    regtestBootstrapIp = DEFAULT_REGTEST_BOOTSTRAP_IP,
+                    regtestBootstrapPort = DEFAULT_REGTEST_BOOTSTRAP_PORT
+                ),
+                walletManager.kit
+            )
 
         return walletService
     }
@@ -196,7 +200,8 @@ class HiltModules {
                 null
             )
 
-        WalletManagerAndroid.Factory(context)
+        WalletManagerAndroid
+            .Factory(context)
             .setConfiguration(config)
             .setWalletId(walletId)
             .init()
@@ -227,7 +232,8 @@ class HiltModules {
                 null
             )
 
-        WalletManagerAndroid.Factory(context)
+        WalletManagerAndroid
+            .Factory(context)
             .setConfiguration(config)
             .setWalletId(walletId)
             .init()
@@ -236,12 +242,10 @@ class HiltModules {
 
         return WalletManagerAndroid.getInstance(walletId)
     }
-
-
 }
 
-class CachePath(val applicationContext: Context) {
-    fun getPath(): Path? {
-        return Paths.get("${applicationContext.cacheDir}")
-    }
+class CachePath(
+    val applicationContext: Context
+) {
+    fun getPath(): Path? = Paths.get("${applicationContext.cacheDir}")
 }

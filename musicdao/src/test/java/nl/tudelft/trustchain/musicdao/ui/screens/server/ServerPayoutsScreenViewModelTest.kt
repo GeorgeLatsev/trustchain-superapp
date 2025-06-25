@@ -18,7 +18,6 @@ import org.junit.Test
 
 @ExperimentalCoroutinesApi
 class ServerPayoutsScreenViewModelTest {
-
     @get:Rule
     val instantTaskExecutorRule = InstantTaskExecutorRule()
 
@@ -49,32 +48,35 @@ class ServerPayoutsScreenViewModelTest {
     }
 
     @Test
-    fun `ensureACollectingPayoutIsShown calls getOrCreateNextPayout on payoutManager`() = runTest {
-        coEvery { payoutManager.getOrCreateNextPayout() } returns "new-payout-id"
+    fun `ensureACollectingPayoutIsShown calls getOrCreateNextPayout on payoutManager`() =
+        runTest {
+            coEvery { payoutManager.getOrCreateNextPayout() } returns "new-payout-id"
 
-        viewModel.ensureACollectingPayoutIsShown()
+            viewModel.ensureACollectingPayoutIsShown()
 
-        coVerify(exactly = 1) { payoutManager.getOrCreateNextPayout() }
-    }
+            coVerify(exactly = 1) { payoutManager.getOrCreateNextPayout() }
+        }
 
     private fun createMockPayoutWithArtists(
         id: String,
         status: PayoutEntity.PayoutStatus,
         artists: List<Pair<String, Long>>
     ): PayoutWithArtists {
-        val payout = PayoutEntity(
-            id = id,
-            payoutStatus = status,
-            createdAt = System.currentTimeMillis()
-        )
-
-        val artistPayouts = artists.map { (address, amount) ->
-            ArtistPayoutEntity(
-                payoutId = id,
-                artistAddress = address,
-                payoutAmount = amount
+        val payout =
+            PayoutEntity(
+                id = id,
+                payoutStatus = status,
+                createdAt = System.currentTimeMillis()
             )
-        }
+
+        val artistPayouts =
+            artists.map { (address, amount) ->
+                ArtistPayoutEntity(
+                    payoutId = id,
+                    artistAddress = address,
+                    payoutAmount = amount
+                )
+            }
 
         return PayoutWithArtists(payout, artistPayouts)
     }

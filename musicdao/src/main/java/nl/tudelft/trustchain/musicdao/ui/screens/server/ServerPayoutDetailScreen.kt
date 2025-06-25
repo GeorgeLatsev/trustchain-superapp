@@ -52,11 +52,12 @@ fun ServerPayoutDetailScreen(
     Column(modifier = Modifier.fillMaxSize()) {
         payoutStatus?.let { status ->
             if (status == PayoutEntity.PayoutStatus.COLLECTING || status == PayoutEntity.PayoutStatus.AWAITING_FOR_CONFIRMATION) {
-                val nextStatus = when (status) {
-                    PayoutEntity.PayoutStatus.COLLECTING -> PayoutEntity.PayoutStatus.AWAITING_FOR_CONFIRMATION
-                    PayoutEntity.PayoutStatus.AWAITING_FOR_CONFIRMATION -> PayoutEntity.PayoutStatus.SUBMITTED
-                    else -> status
-                }
+                val nextStatus =
+                    when (status) {
+                        PayoutEntity.PayoutStatus.COLLECTING -> PayoutEntity.PayoutStatus.AWAITING_FOR_CONFIRMATION
+                        PayoutEntity.PayoutStatus.AWAITING_FOR_CONFIRMATION -> PayoutEntity.PayoutStatus.SUBMITTED
+                        else -> status
+                    }
                 Button(
                     onClick = {
                         coroutine.launch {
@@ -97,9 +98,10 @@ fun ContributionsList(contributions: List<ContributionEntity>) {
             val contribution = contributions[index]
 
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
                 elevation = 4.dp
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -119,9 +121,10 @@ fun ArtistPayoutsList(payouts: List<ArtistPayoutEntity>) {
             val payout = payouts[index]
 
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
                 elevation = 4.dp
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {

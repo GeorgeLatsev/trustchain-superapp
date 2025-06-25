@@ -20,10 +20,8 @@ data class ContributionEntity(
     @PrimaryKey
     val transactionHash: String,
     val signature: String,
-
     val artistSplits: Map<String, Float>,
     val donationAmount: Long? = null,
-
     val status: ContributionStatus = ContributionStatus.UNVERIFIED,
     val payoutId: String? = null,
 ) {

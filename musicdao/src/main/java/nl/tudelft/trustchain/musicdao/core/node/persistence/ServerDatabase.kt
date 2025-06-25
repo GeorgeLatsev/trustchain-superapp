@@ -17,4 +17,3 @@ import nl.tudelft.trustchain.musicdao.core.node.persistence.parser.Converters
 abstract class ServerDatabase : RoomDatabase() {
     abstract val payoutDao: PayoutDao
 }
-

@@ -225,7 +225,7 @@ fun AppNavigation(
                             type = NavType.StringType
                         }
                     ),
-            ) {navBackStackEntry ->
+            ) { navBackStackEntry ->
                 val serverPayoutDetailScreenViewModel: ServerPayoutDetailScreenViewModel = hiltViewModel()
                 ServerPayoutDetailScreen(
                     payoutId = navBackStackEntry.arguments?.getString("payoutId") ?: "",

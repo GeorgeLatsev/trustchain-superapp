@@ -10,20 +10,21 @@ import nl.tudelft.trustchain.musicdao.core.ipv8.blocks.listenActivity.ListenActi
 import javax.inject.Inject
 
 @HiltViewModel
-class MusicStatsViewModel @Inject constructor(
-    private val listenRepo: ListenActivityBlockRepository
-) : ViewModel() {
+class MusicStatsViewModel
+    @Inject
+    constructor(
+        private val listenRepo: ListenActivityBlockRepository
+    ) : ViewModel() {
+        private val _minutesPerArtist = MutableStateFlow<Map<String, Double>>(emptyMap())
+        val minutesPerArtist: StateFlow<Map<String, Double>> = _minutesPerArtist
 
-    private val _minutesPerArtist = MutableStateFlow<Map<String, Double>>(emptyMap())
-    val minutesPerArtist: StateFlow<Map<String, Double>> = _minutesPerArtist
+        init {
+            load()
+        }
 
-    init {
-        load()
-    }
-
-    fun load() {
-        viewModelScope.launch {
-            _minutesPerArtist.value = listenRepo.getMinutesPerArtist()
+        fun load() {
+            viewModelScope.launch {
+                _minutesPerArtist.value = listenRepo.getMinutesPerArtist()
+            }
         }
     }
-}

@@ -32,105 +32,108 @@ class ContributeViewModel
         private val payoutService: PayoutService,
         val cacheDatabase: CacheDatabase
     ) : ViewModel() {
+        private val _isRefreshing: MutableLiveData<Boolean> = MutableLiveData()
+        val isRefreshing: LiveData<Boolean> = _isRefreshing
 
-    private val _isRefreshing: MutableLiveData<Boolean> = MutableLiveData()
-    val isRefreshing: LiveData<Boolean> = _isRefreshing
+        private val _listenActivity: MutableStateFlow<Map<String, Double>> = MutableStateFlow(mapOf())
+        private val listenActivity: StateFlow<Map<String, Double>> = _listenActivity
 
-    private val _listenActivity: MutableStateFlow<Map<String, Double>> = MutableStateFlow(mapOf())
-    private val listenActivity: StateFlow<Map<String, Double>> = _listenActivity
-
-    private val musicCommunity: MusicCommunity by lazy {
-        IPv8Android.getInstance()
-            .getOverlay() as? MusicCommunity
-            ?: throw IllegalStateException("MusicCommunity is not configured")
-    }
-
-    init {
-        viewModelScope.launch {
-            _listenActivity.value = listenActivityBlockRepository.getMinutesPerArtist()
-        }
-    }
-
-    /**
-     * Contributes the given amount to the artists.
-     * The contribution is split based on the proportion of time listened to each artist.
-     *
-     * @param amount The amount to contribute.
-     * @return [ContributionStatus] indicating the result of the contribution attempt.
-     */
-    suspend fun contribute(amount: Float): ContributionStatus {
-        _listenActivity.value = listenActivityBlockRepository.getMinutesPerArtist()
-
-        if (listenActivity.value.isEmpty()) {
-            Log.w("ContributeViewModel", "No listen activity found, cannot contribute")
-            return ContributionStatus.NO_LISTEN_ACTIVITY
+        private val musicCommunity: MusicCommunity by lazy {
+            IPv8Android.getInstance()
+                .getOverlay() as? MusicCommunity
+                ?: throw IllegalStateException("MusicCommunity is not configured")
         }
 
-        if (!payoutService.isNodeFound.value) {
-            Log.w("ContributeViewModel", "No payout node found, cannot contribute")
-            return ContributionStatus.NO_NODE_FOUND
-        }
-
-        val totalListenedTime = listenActivity.value.values.sum()
-        val sharePerArtist = listenActivity.value.mapValues { (_, minutes) ->
-            (minutes / totalListenedTime).toFloat()
-        }
-
-        val sharePerAddress = sharePerArtist.mapNotNull { (key, value) ->
-            val address = if ('|' in key) {
-                key.substringAfter('|')
-            } else {
-                Log.d("ContributeViewModel", "Getting artist from repository based on name ${artistRepository.getArtist(key)}")
-                artistRepository.getArtist(key)?.bitcoinAddress
+        init {
+            viewModelScope.launch {
+                _listenActivity.value = listenActivityBlockRepository.getMinutesPerArtist()
             }
-            address?.let { it to value }
-        }.toMap()
-
-        val result = payoutService.makeContribution(amount, sharePerAddress)
-        if (result != null) {
-            val contribution = Contribution(
-                txid = result,
-                amount = amount,
-                artists = sharePerArtist.keys.toList(),
-                satisfied = false
-            )
-            val transaction = mutableMapOf(
-                "txid" to result,
-                "amount" to amount,
-                "artists" to sharePerArtist.keys.toList()
-            )
-            val myPeer = IPv8Android.getInstance().myPeer
-
-            musicCommunity.createProposalBlock("contribute-proposal", transaction, myPeer.publicKey.keyToBin())
-            listenActivityBlockRepository.clearListenActivityData()
-            cacheDatabase.dao.insert(contribution.toEntity())
-
-            return ContributionStatus.SUCCESS
         }
 
-        return ContributionStatus.FAILURE
-    }
+        /**
+         * Contributes the given amount to the artists.
+         * The contribution is split based on the proportion of time listened to each artist.
+         *
+         * @param amount The amount to contribute.
+         * @return [ContributionStatus] indicating the result of the contribution attempt.
+         */
+        suspend fun contribute(amount: Float): ContributionStatus {
+            _listenActivity.value = listenActivityBlockRepository.getMinutesPerArtist()
 
-    enum class ContributionStatus {
-        SUCCESS,
-        NO_NODE_FOUND,
-        NO_LISTEN_ACTIVITY,
-        FAILURE
-    }
+            if (listenActivity.value.isEmpty()) {
+                Log.w("ContributeViewModel", "No listen activity found, cannot contribute")
+                return ContributionStatus.NO_LISTEN_ACTIVITY
+            }
 
-    fun refresh() {
-        viewModelScope.launch {
-            _isRefreshing.value = true
-            delay(500)
+            if (!payoutService.isNodeFound.value) {
+                Log.w("ContributeViewModel", "No payout node found, cannot contribute")
+                return ContributionStatus.NO_NODE_FOUND
+            }
 
-            withContext(Dispatchers.IO) {
-                contributionRepository.getContributions() // only needed if we want to add other contributions
-
-                withContext(Dispatchers.Main) {
-                    _isRefreshing.value = false
+            val totalListenedTime = listenActivity.value.values.sum()
+            val sharePerArtist =
+                listenActivity.value.mapValues { (_, minutes) ->
+                    (minutes / totalListenedTime).toFloat()
                 }
 
+            val sharePerAddress =
+                sharePerArtist.mapNotNull { (key, value) ->
+                    val address =
+                        if ('|' in key) {
+                            key.substringAfter('|')
+                        } else {
+                            Log.d("ContributeViewModel", "Getting artist from repository based on name ${artistRepository.getArtist(key)}")
+                            artistRepository.getArtist(key)?.bitcoinAddress
+                        }
+                    address?.let { it to value }
+                }.toMap()
+
+            val result = payoutService.makeContribution(amount, sharePerAddress)
+            if (result != null) {
+                val contribution =
+                    Contribution(
+                        txid = result,
+                        amount = amount,
+                        artists = sharePerArtist.keys.toList(),
+                        satisfied = false
+                    )
+                val transaction =
+                    mutableMapOf(
+                        "txid" to result,
+                        "amount" to amount,
+                        "artists" to sharePerArtist.keys.toList()
+                    )
+                val myPeer = IPv8Android.getInstance().myPeer
+
+                musicCommunity.createProposalBlock("contribute-proposal", transaction, myPeer.publicKey.keyToBin())
+                listenActivityBlockRepository.clearListenActivityData()
+                cacheDatabase.dao.insert(contribution.toEntity())
+
+                return ContributionStatus.SUCCESS
+            }
+
+            return ContributionStatus.FAILURE
+        }
+
+        enum class ContributionStatus {
+            SUCCESS,
+            NO_NODE_FOUND,
+            NO_LISTEN_ACTIVITY,
+            FAILURE
+        }
+
+        fun refresh() {
+            viewModelScope.launch {
+                _isRefreshing.value = true
+                delay(500)
+
+                withContext(Dispatchers.IO) {
+                    contributionRepository.getContributions() // only needed if we want to add other contributions
+
+                    withContext(Dispatchers.Main) {
+                        _isRefreshing.value = false
+                    }
+                }
             }
         }
     }
-}

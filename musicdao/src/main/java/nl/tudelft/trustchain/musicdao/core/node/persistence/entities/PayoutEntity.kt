@@ -23,7 +23,6 @@ data class PayoutEntity(
 
 data class PayoutWithArtists(
     @Embedded val payout: PayoutEntity,
-
     @Relation(
         parentColumn = "id",
         entityColumn = "payoutId"

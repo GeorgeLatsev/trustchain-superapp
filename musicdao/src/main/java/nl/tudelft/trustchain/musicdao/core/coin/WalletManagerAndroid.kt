@@ -10,10 +10,9 @@ object WalletManagerAndroid { // TODO: Clean up Thread usage.
     private val walletManagers = mutableMapOf<String, WalletManager>()
     private val isRunning = mutableMapOf<String, Boolean>()
 
-    fun getInstance(walletId: String): WalletManager {
-        return walletManagers[walletId]
+    fun getInstance(walletId: String): WalletManager =
+        walletManagers[walletId]
             ?: throw IllegalStateException("WalletManager with ID '$walletId' is not initialized")
-    }
 
     class Factory(
         private val context: Context
@@ -35,12 +34,14 @@ object WalletManagerAndroid { // TODO: Clean up Thread usage.
             val configuration =
                 configuration
                     ?: throw IllegalStateException("Configuration is not set")
-            val walletId = this.walletId
-                ?: throw IllegalStateException("Wallet ID is not set")
+            val walletId =
+                this.walletId
+                    ?: throw IllegalStateException("Wallet ID is not set")
 
-            val walletDir = File(context.filesDir, "wallet_$walletId").apply {
-                if (!exists()) mkdirs()
-            }
+            val walletDir =
+                File(context.filesDir, "wallet_$walletId").apply {
+                    if (!exists()) mkdirs()
+                }
 
             val walletManager =
                 WalletManager(
@@ -57,9 +58,7 @@ object WalletManagerAndroid { // TODO: Clean up Thread usage.
         }
     }
 
-    fun isInitialized(walletId: String): Boolean {
-        return walletManagers.containsKey(walletId)
-    }
+    fun isInitialized(walletId: String): Boolean = walletManagers.containsKey(walletId)
 
     /**
      * Stops and resets the current wallet manager.

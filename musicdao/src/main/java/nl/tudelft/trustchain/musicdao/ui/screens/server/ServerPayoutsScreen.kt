@@ -23,7 +23,6 @@ import kotlinx.coroutines.launch
 import nl.tudelft.trustchain.musicdao.ui.navigation.Screen
 import nl.tudelft.trustchain.musicdao.ui.styling.MusicDAOTheme
 
-
 @ExperimentalMaterialApi
 @Composable
 fun ServerPayoutsScreen(
@@ -32,9 +31,10 @@ fun ServerPayoutsScreen(
 ) {
     val payoutsWithArtists by serverPayoutsScreenViewModel.payoutsWithArtists.collectAsState()
 
-    val formatter = remember {
-        java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.getDefault())
-    }
+    val formatter =
+        remember {
+            java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.getDefault())
+        }
 
     val coroutine = rememberCoroutineScope()
 
@@ -44,31 +44,33 @@ fun ServerPayoutsScreen(
         }
     }
 
-
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(16.dp)
     ) {
         items(payoutsWithArtists.size) { index ->
             val payout = payoutsWithArtists[index].payout
             val artistPayouts = payoutsWithArtists[index].artistPayouts
             val totalAmount = artistPayouts.sumOf { it.payoutAmount }
 
-            val backgroundColor = when (payout.payoutStatus) {
-                PayoutEntity.PayoutStatus.COLLECTING -> MusicDAOTheme.DarkColors.primary
-                PayoutEntity.PayoutStatus.AWAITING_FOR_CONFIRMATION -> Color(0xFFffd700)
-                else -> Color.DarkGray
-            }
+            val backgroundColor =
+                when (payout.payoutStatus) {
+                    PayoutEntity.PayoutStatus.COLLECTING -> MusicDAOTheme.DarkColors.primary
+                    PayoutEntity.PayoutStatus.AWAITING_FOR_CONFIRMATION -> Color(0xFFffd700)
+                    else -> Color.DarkGray
+                }
 
             Card(
                 backgroundColor = backgroundColor,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-                    .clickable {
-                        navController.navigate( Screen.ServerPayoutDetail.createRoute(payout.id))
-                    },
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                        .clickable {
+                            navController.navigate(Screen.ServerPayoutDetail.createRoute(payout.id))
+                        },
                 elevation = 4.dp
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -77,11 +79,12 @@ fun ServerPayoutsScreen(
                     Text("Artists included: ${artistPayouts.size}", style = MaterialTheme.typography.body2)
                     Text("Total: $totalAmount sats", style = MaterialTheme.typography.body2)
 
-                    val dateText = try {
-                        formatter.format(java.util.Date(payout.createdAt))
-                    } catch (e: Exception) {
-                        "N/A"
-                    }
+                    val dateText =
+                        try {
+                            formatter.format(java.util.Date(payout.createdAt))
+                        } catch (e: Exception) {
+                            "N/A"
+                        }
 
                     Text("Created: $dateText", style = MaterialTheme.typography.body2)
                 }

@@ -7,7 +7,6 @@ import kotlinx.coroutines.withContext
 import nl.tudelft.trustchain.musicdao.core.coin.CoinUtil
 import org.bitcoinj.core.Address
 import org.bitcoinj.core.Coin
-import org.bitcoinj.core.SegwitAddress
 import org.bitcoinj.core.Transaction
 import org.bitcoinj.core.listeners.DownloadProgressTracker
 import org.bitcoinj.kits.WalletAppKit
@@ -19,7 +18,10 @@ import java.math.BigDecimal
 import java.net.URL
 import java.util.*
 
-class WalletService(val config: WalletConfig, private val app: WalletAppKit) {
+class WalletService(
+    val config: WalletConfig,
+    private val app: WalletAppKit
+) {
     private var started = false
     private var percentageSynced = 0
 
@@ -55,13 +57,9 @@ class WalletService(val config: WalletConfig, private val app: WalletAppKit) {
         started = true
     }
 
-    fun wallet(): Wallet {
-        return app.wallet()
-    }
+    fun wallet(): Wallet = app.wallet()
 
-    fun isStarted(): Boolean {
-        return started && app.wallet() != null
-    }
+    fun isStarted(): Boolean = started && app.wallet() != null
 
     /**
      * Convert an amount of coins represented by a user input string, and then send it
@@ -160,7 +158,6 @@ class WalletService(val config: WalletConfig, private val app: WalletAppKit) {
             val result = app.wallet().sendCoins(adjustedRequest)
             Log.i("MusicDao", "Transaction sent: ${result.tx.txId}")
             return result.tx.txId.toString()
-
         } catch (e: Exception) {
             Log.e("MusicDao", "Error sending multi-output transaction", e)
             return null
@@ -171,9 +168,7 @@ class WalletService(val config: WalletConfig, private val app: WalletAppKit) {
      * Query the faucet to the default protocol address
      * @return whether request was successfully or not
      */
-    suspend fun defaultFaucetRequest(): Boolean {
-        return requestFaucet(protocolAddress().toString())
-    }
+    suspend fun defaultFaucetRequest(): Boolean = requestFaucet(protocolAddress().toString())
 
     /**
      * Query the bitcoin faucet for some starter bitcoins
@@ -205,38 +200,33 @@ class WalletService(val config: WalletConfig, private val app: WalletAppKit) {
         }
     }
 
-    fun walletStatus(): String {
-        return app.state().name
-    }
+    fun walletStatus(): String = app.state().name
 
-    fun percentageSynced(): Int {
-        return percentageSynced
-    }
+    fun percentageSynced(): Int = percentageSynced
 
     /**
      * @return default address used for all interactions on chain
      */
-    fun protocolAddress(): Address {
-        return app.wallet().issuedReceiveAddresses[0]
-    }
+    fun protocolAddress(): Address = app.wallet().issuedReceiveAddresses[0]
 
-    fun confirmedBalance(): Coin? {
-        return try {
+    fun confirmedBalance(): Coin? =
+        try {
             app.wallet().balance
         } catch (e: java.lang.Exception) {
             null
         }
-    }
 
-    fun walletTransactions(): List<UserWalletTransaction> {
-        return app.wallet().walletTransactions.map {
-            UserWalletTransaction(
-                transaction = it.transaction,
-                value = it.transaction.getValue(app.wallet()),
-                date = it.transaction.updateTime
-            )
-        }.sortedByDescending { it.date }
-    }
+    fun walletTransactions(): List<UserWalletTransaction> =
+        app
+            .wallet()
+            .walletTransactions
+            .map {
+                UserWalletTransaction(
+                    transaction = it.transaction,
+                    value = it.transaction.getValue(app.wallet()),
+                    date = it.transaction.updateTime
+                )
+            }.sortedByDescending { it.date }
 
     fun setWalletReceiveListener() {
         userTransactions.value = walletTransactions()
@@ -245,13 +235,12 @@ class WalletService(val config: WalletConfig, private val app: WalletAppKit) {
         }
     }
 
-    fun estimatedBalance(): String? {
-        return try {
+    fun estimatedBalance(): String? =
+        try {
             app.wallet().getBalance(Wallet.BalanceType.ESTIMATED).toFriendlyString()
         } catch (e: java.lang.Exception) {
             null
         }
-    }
 
     /**
      * Sign a message using the wallet's current receive key.
@@ -260,15 +249,14 @@ class WalletService(val config: WalletConfig, private val app: WalletAppKit) {
      * @param message The message to be signed.
      * @return The signed message (Base64-encoded), or null if signing fails.
      */
-    fun signMessage(message: String): String? {
-        return try {
+    fun signMessage(message: String): String? =
+        try {
             val key = app.wallet().currentReceiveKey()
             key.signMessage(message)
         } catch (e: Exception) {
             Log.e("MusicDao", "signMessage: Failed to sign message", e)
             null
         }
-    }
 
     companion object {
         val SATS_PER_BITCOIN = BigDecimal(100_000_000)

@@ -33,19 +33,22 @@ class SetupMusicCommunity
                 ReleasePublishBlockSigner.BLOCK_TYPE,
                 releasePublishBlockSigner
             )
-            musicCommunity.addListener(PayoutUpdateStatusBlock.BLOCK_TYPE, object : BlockListener {
-                override fun onBlockReceived(block: TrustChainBlock) {
-                    val update = PayoutUpdateStatusBlock.fromTrustChainTransaction(block.transaction);
-                    Log.d("MusicCommunity", "Payout Update: $update")
+            musicCommunity.addListener(
+                PayoutUpdateStatusBlock.BLOCK_TYPE,
+                object : BlockListener {
+                    override fun onBlockReceived(block: TrustChainBlock) {
+                        val update = PayoutUpdateStatusBlock.fromTrustChainTransaction(block.transaction)
+                        Log.d("MusicCommunity", "Payout Update: $update")
 
-                    torrentEngine.download(update.torrentMagnet);
+                        torrentEngine.download(update.torrentMagnet)
 
-                    if (update.payoutStatus == "SUBMITTED") {
-                        GlobalScope.launch {
-                            db.dao.markContributionsAsSatisfied(update.transactionIds)
+                        if (update.payoutStatus == "SUBMITTED") {
+                            GlobalScope.launch {
+                                db.dao.markContributionsAsSatisfied(update.transactionIds)
+                            }
                         }
                     }
                 }
-            })
+            )
         }
     }

@@ -20,7 +20,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.io.File
 
-class PlayerViewModel(context: Context) : ViewModel() {
+class PlayerViewModel(
+    context: Context
+) : ViewModel() {
     private val _playingTrack: MutableStateFlow<Song?> = MutableStateFlow(null)
     val playingTrack: StateFlow<Song?> = _playingTrack
 
@@ -38,31 +40,36 @@ class PlayerViewModel(context: Context) : ViewModel() {
     private var endTime: Long = 0L
 
     init {
-        exoPlayer.addListener(object : Player.Listener {
-            override fun onPlaybackStateChanged(state: Int) {
-                Log.d("ExoPlayerListener", "Playback state changed: $state")
-            }
+        exoPlayer.addListener(
+            object : Player.Listener {
+                override fun onPlaybackStateChanged(state: Int) {
+                    Log.d("ExoPlayerListener", "Playback state changed: $state")
+                }
 
-            override fun onIsPlayingChanged(isPlaying: Boolean) {
-                Log.d("ExoPlayerListener", "Is playing: $isPlaying")
-                if (isPlaying) {
-                    startTime = System.currentTimeMillis()
-                } else {
-                    endTime = System.currentTimeMillis()
-                    val duration = endTime - startTime
-                    if (currentArtist!!.contains('|')){
-                        Log.d("ExoPlayerListener", "Track played for: $duration ms by $currentArtist")
-                        updateListenActivity(currentArtist, duration)
+                override fun onIsPlayingChanged(isPlaying: Boolean) {
+                    Log.d("ExoPlayerListener", "Is playing: $isPlaying")
+                    if (isPlaying) {
+                        startTime = System.currentTimeMillis()
                     } else {
-                        Log.d("ExoPlayerListener", "Track played for: $duration ms by $currentArtistPublisher")
-                        updateListenActivity(currentArtistPublisher, duration)
+                        endTime = System.currentTimeMillis()
+                        val duration = endTime - startTime
+                        if (currentArtist!!.contains('|')) {
+                            Log.d("ExoPlayerListener", "Track played for: $duration ms by $currentArtist")
+                            updateListenActivity(currentArtist, duration)
+                        } else {
+                            Log.d("ExoPlayerListener", "Track played for: $duration ms by $currentArtistPublisher")
+                            updateListenActivity(currentArtistPublisher, duration)
+                        }
                     }
                 }
             }
-        })
+        )
     }
 
-    private fun updateListenActivity(artist: String?, duration: Long) {
+    private fun updateListenActivity(
+        artist: String?,
+        duration: Long
+    ) {
         if (artist == null) return
 
         val dir = File(appDir, "artist_listening_data")
@@ -71,11 +78,12 @@ class PlayerViewModel(context: Context) : ViewModel() {
         }
 
         val artistFile = File(dir, "$artist.txt")
-        val previousDuration = if (artistFile.exists()) {
-            artistFile.readText().toLongOrNull() ?: 0L
-        } else {
-            0L
-        }
+        val previousDuration =
+            if (artistFile.exists()) {
+                artistFile.readText().toLongOrNull() ?: 0L
+            } else {
+                0L
+            }
         val totalDuration = previousDuration + duration
         artistFile.writeText(totalDuration.toString())
         Log.d("StatsUpdate", "Artist file path: ${artistFile.absolutePath}")
@@ -90,7 +98,8 @@ class PlayerViewModel(context: Context) : ViewModel() {
         val dataSourceFactory: DataSource.Factory =
             DefaultDataSourceFactory(context, "musicdao-audioplayer")
         val mediaItem = MediaItem.fromUri(uri)
-        return ProgressiveMediaSource.Factory(dataSourceFactory)
+        return ProgressiveMediaSource
+            .Factory(dataSourceFactory)
             .createMediaSource(mediaItem)
     }
 
@@ -98,7 +107,6 @@ class PlayerViewModel(context: Context) : ViewModel() {
         track: Song,
         cover: File? = null,
         album: Album
-
     ) {
         _playingTrack.value = track
         _coverFile.value = cover
@@ -142,11 +150,10 @@ class PlayerViewModel(context: Context) : ViewModel() {
         fun provideFactory(context: Context): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
-                override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                    return PlayerViewModel(
+                override fun <T : ViewModel> create(modelClass: Class<T>): T =
+                    PlayerViewModel(
                         context
                     ) as T
-                }
             }
     }
 }

@@ -11,7 +11,10 @@ object PreferenceHelper {
         prefs = PreferenceManager.getDefaultSharedPreferences(context)
     }
 
-    fun <T> set(key: String, value: T) {
+    fun <T> set(
+        key: String,
+        value: T
+    ) {
         with(prefs.edit()) {
             when (value) {
                 is String -> putString(key, value)
@@ -26,7 +29,10 @@ object PreferenceHelper {
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun <T> get(key: String, defaultValue: T): T {
+    fun <T> get(
+        key: String,
+        defaultValue: T
+    ): T {
         return when (defaultValue) {
             is String -> prefs.getString(key, defaultValue) as T
             is Int -> prefs.getInt(key, defaultValue) as T

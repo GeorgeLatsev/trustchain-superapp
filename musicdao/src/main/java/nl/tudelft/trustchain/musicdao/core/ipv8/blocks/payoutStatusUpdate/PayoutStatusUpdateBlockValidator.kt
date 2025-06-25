@@ -6,9 +6,7 @@ import nl.tudelft.ipv8.attestation.trustchain.store.TrustChainStore
 import nl.tudelft.ipv8.attestation.trustchain.validation.TransactionValidator
 import nl.tudelft.ipv8.attestation.trustchain.validation.ValidationResult
 import nl.tudelft.trustchain.musicdao.core.ipv8.MusicCommunity
-import nl.tudelft.trustchain.musicdao.core.ipv8.blocks.releasePublish.ReleasePublishBlock
 import javax.inject.Inject
-
 
 class PayoutStatusUpdateBlockValidator
     @Inject
@@ -30,7 +28,6 @@ class PayoutStatusUpdateBlockValidator
         }
 
         fun validateTransaction(transaction: TrustChainTransaction): Boolean {
-
             val payoutId = transaction["payoutId"]
             val payoutStatus = transaction["payoutStatus"]
             val artistSplits = transaction["artistSplits"]
@@ -40,13 +37,12 @@ class PayoutStatusUpdateBlockValidator
 
             return (
                 payoutId is String && payoutId.isNotEmpty() && transaction.containsKey("payoutId") &&
-                payoutStatus is String && payoutStatus.isNotEmpty() && transaction.containsKey("payoutStatus") &&
-                artistSplits is Map<*, *> && artistSplits.isNotEmpty() && transaction.containsKey("artistSplits") &&
-                transactionIds is List<*> && transactionIds.isNotEmpty() && transaction.containsKey("transactionIds") &&
-                torrentMagnet is String && torrentMagnet.isNotEmpty() && transaction.containsKey("torrentMagnet") &&
-                (payoutTransactionId == null || payoutTransactionId is String) && transaction.containsKey("payoutTransactionId")
+                    payoutStatus is String && payoutStatus.isNotEmpty() && transaction.containsKey("payoutStatus") &&
+                    artistSplits is Map<*, *> && artistSplits.isNotEmpty() && transaction.containsKey("artistSplits") &&
+                    transactionIds is List<*> && transactionIds.isNotEmpty() && transaction.containsKey("transactionIds") &&
+                    torrentMagnet is String && torrentMagnet.isNotEmpty() && transaction.containsKey("torrentMagnet") &&
+                    (payoutTransactionId == null || payoutTransactionId is String) && transaction.containsKey("payoutTransactionId")
             )
-
         }
 
         companion object {

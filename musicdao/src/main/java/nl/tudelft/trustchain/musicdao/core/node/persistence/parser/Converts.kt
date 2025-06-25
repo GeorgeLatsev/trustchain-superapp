@@ -29,6 +29,5 @@ class Converters(
     fun fromTransactionsIdsJson(value: List<String>): String = value.joinToString(",")
 
     @TypeConverter
-    fun toTransactionsIdsJson(value: String): List<String> =
-        if (value.isEmpty()) emptyList() else value.split(",")
+    fun toTransactionsIdsJson(value: String): List<String> = if (value.isEmpty()) emptyList() else value.split(",")
 }

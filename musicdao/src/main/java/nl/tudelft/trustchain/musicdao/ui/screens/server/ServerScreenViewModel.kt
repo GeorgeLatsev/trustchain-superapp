@@ -9,12 +9,10 @@ import javax.inject.Named
 
 @HiltViewModel
 class ServerScreenViewModel
-@Inject
-constructor(
-    private val server: PayoutManager,
-    private val walletService: WalletService,
-    @Named("payoutWallet")
-    private val serverWalletService: WalletService,
-) : ViewModel() {
-
-}
+    @Inject
+    constructor(
+        private val server: PayoutManager,
+        private val walletService: WalletService,
+        @Named("payoutWallet")
+        private val serverWalletService: WalletService,
+    ) : ViewModel()

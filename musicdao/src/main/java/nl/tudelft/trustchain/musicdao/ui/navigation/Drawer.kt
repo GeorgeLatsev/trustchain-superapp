@@ -1,6 +1,5 @@
 package nl.tudelft.trustchain.musicdao.ui.navigation
 
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -20,7 +19,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import nl.tudelft.trustchain.musicdao.core.contribute.PayoutService
 import nl.tudelft.trustchain.musicdao.ui.screens.profile.MyProfileScreenViewModel
 
 @ExperimentalMaterialApi
@@ -148,10 +146,11 @@ fun PayoutDropdownMenuItem(
         }
     ) {
         Text(
-            if (isNodeFound)
+            if (isNodeFound) {
                 "Payout node: ${nodeAddress ?: "unknown"}"
-            else
+            } else {
                 "Payout node: searching..."
+            }
         )
     }
 }
