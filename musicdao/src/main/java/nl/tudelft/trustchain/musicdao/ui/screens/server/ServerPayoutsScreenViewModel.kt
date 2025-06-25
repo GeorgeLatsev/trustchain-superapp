@@ -13,17 +13,16 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ServerPayoutsScreenViewModel
-@Inject
-constructor(
-    val db: ServerDatabase,
-    val payoutManager: PayoutManager
-) : ViewModel() {
+    @Inject
+    constructor(
+        val db: ServerDatabase,
+        val payoutManager: PayoutManager
+    ) : ViewModel() {
+        val payoutsWithArtists: StateFlow<List<PayoutWithArtists>> =
+            db.payoutDao.getAllPayoutsWithArtists()
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
 
-    val payoutsWithArtists: StateFlow<List<PayoutWithArtists>> =
-        db.payoutDao.getAllPayoutsWithArtists()
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
-
-    suspend fun ensureACollectingPayoutIsShown() {
-        payoutManager.getOrCreateNextPayout()
+        suspend fun ensureACollectingPayoutIsShown() {
+            payoutManager.getOrCreateNextPayout()
+        }
     }
-}

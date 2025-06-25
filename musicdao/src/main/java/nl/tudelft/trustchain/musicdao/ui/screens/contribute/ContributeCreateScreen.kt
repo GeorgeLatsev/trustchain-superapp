@@ -41,7 +41,7 @@ fun ContributeCreateScreen(
 
         // Check if enough balance available
         val confirmedBalance = bitcoinWalletViewModel.confirmedBalance.value
-        val amountSats = (BigDecimal(amountFloat.toDouble()) * SATS_PER_BITCOIN).toLong();
+        val amountSats = (BigDecimal(amountFloat.toDouble()) * SATS_PER_BITCOIN).toLong()
         if (confirmedBalance == null || confirmedBalance.isZero || confirmedBalance.isNegative || confirmedBalance.value < amountSats) {
             SnackbarHandler.displaySnackbar("You don't have enough funds to make a donation")
             return

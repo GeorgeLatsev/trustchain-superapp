@@ -9,11 +9,10 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ServerContributionsScreenViewModel
-@Inject
-constructor(
-    private val db: ServerDatabase
-) : ViewModel() {
-
-    val unverifiedContributions: Flow<List<ContributionEntity>> =
-        db.payoutDao.getUnverifiedContributions()
-}
+    @Inject
+    constructor(
+        private val db: ServerDatabase
+    ) : ViewModel() {
+        val unverifiedContributions: Flow<List<ContributionEntity>> =
+            db.payoutDao.getUnverifiedContributions()
+    }

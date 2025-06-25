@@ -7,7 +7,6 @@ class ContributionMessage(
     val artistSplits: Map<String, Float>,
     var signature: String = "",
 ) : Serializable {
-
     /**
      * Generates a signable string representation of the contribution message.
      */
@@ -38,7 +37,10 @@ class ContributionMessage(
     }
 
     companion object Deserializer : Deserializable<ContributionMessage> {
-        override fun deserialize(buffer: ByteArray, offset: Int): Pair<ContributionMessage, Int> {
+        override fun deserialize(
+            buffer: ByteArray,
+            offset: Int
+        ): Pair<ContributionMessage, Int> {
             var localOffset = 0
 
             val (txidBytes, txidLen) = deserializeVarLen(buffer, offset + localOffset)
@@ -83,7 +85,9 @@ fun serializeFloat(value: Float): ByteArray {
     return java.nio.ByteBuffer.allocate(SERIALIZED_FLOAT_SIZE).putFloat(value).array()
 }
 
-fun deserializeFloat(buffer: ByteArray, offset: Int): Float {
+fun deserializeFloat(
+    buffer: ByteArray,
+    offset: Int
+): Float {
     return java.nio.ByteBuffer.wrap(buffer, offset, SERIALIZED_FLOAT_SIZE).float
 }
-

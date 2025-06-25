@@ -9,7 +9,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavController
-import kotlinx.coroutines.launch
 import nl.tudelft.trustchain.musicdao.ui.navigation.Screen
 
 @ExperimentalMaterialApi
@@ -23,21 +22,24 @@ fun ServerScreen(
     Column {
         ListItem(
             text = { Text(text = "Payouts") },
-            modifier = Modifier.clickable {
-                navController.navigate(Screen.ServerPayouts.route)
-            }
+            modifier =
+                Modifier.clickable {
+                    navController.navigate(Screen.ServerPayouts.route)
+                }
         )
         ListItem(
             text = { Text(text = "Unverified contributions") },
-            modifier = Modifier.clickable {
-                navController.navigate(Screen.ServerContributions.route)
-            }
+            modifier =
+                Modifier.clickable {
+                    navController.navigate(Screen.ServerContributions.route)
+                }
         )
         ListItem(
             text = { Text(text = "Payout wallet") },
-            modifier = Modifier.clickable {
-                navController.navigate(Screen.NodeWallet.route)
-            }
+            modifier =
+                Modifier.clickable {
+                    navController.navigate(Screen.NodeWallet.route)
+                }
         )
     }
 }

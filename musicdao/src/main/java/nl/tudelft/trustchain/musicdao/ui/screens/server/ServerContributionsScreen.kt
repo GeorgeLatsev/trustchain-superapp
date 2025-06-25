@@ -17,14 +17,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 
 @ExperimentalMaterialApi
 @Composable
-fun ServerContributionsScreen(
-    viewModel: ServerContributionsScreenViewModel
-) {
+fun ServerContributionsScreen(viewModel: ServerContributionsScreenViewModel) {
     val unverifiedContributions by viewModel.unverifiedContributions.collectAsState(initial = emptyList())
 
-    Column(modifier = Modifier
-        .fillMaxSize()
-        .padding(16.dp)
+    Column(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(16.dp)
     ) {
         Text(
             text = "Unverified Contributions",
@@ -37,9 +37,10 @@ fun ServerContributionsScreen(
                 val contribution = unverifiedContributions[index]
 
                 Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
                     elevation = 4.dp
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {

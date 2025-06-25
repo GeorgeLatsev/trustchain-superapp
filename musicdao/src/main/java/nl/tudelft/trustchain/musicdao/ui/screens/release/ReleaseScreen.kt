@@ -52,10 +52,11 @@ fun ReleaseScreen(
     val titles = listOf("RELEASE", "TORRENT")
 
     val viewModelFactory =
-        EntryPointAccessors.fromActivity(
-            LocalContext.current as Activity,
-            MusicActivity.ViewModelFactoryProvider::class.java
-        ).noteDetailViewModelFactory()
+        EntryPointAccessors
+            .fromActivity(
+                LocalContext.current as Activity,
+                MusicActivity.ViewModelFactoryProvider::class.java
+            ).noteDetailViewModelFactory()
 
     val viewModel: ReleaseScreenViewModel =
         viewModel(

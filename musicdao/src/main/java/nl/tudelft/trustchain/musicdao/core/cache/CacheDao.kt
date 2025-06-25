@@ -38,7 +38,6 @@ interface CacheDao {
     @Query("SELECT * FROM AlbumEntity WHERE artist LIKE '%' || :keyword || '%' OR title LIKE '%' || :keyword || '%'")
     suspend fun localSearch(keyword: String): List<AlbumEntity>
 
-
     @Query("SELECT * FROM ContributionEntity")
     fun getAllContributions(): Flow<List<ContributionEntity>>
 

@@ -3,9 +3,6 @@ package nl.tudelft.trustchain.musicdao.core.torrent.fileProcessing
 import android.content.Context
 import android.util.Log
 import org.bitcoinj.core.ECKey
-import org.bitcoinj.params.MainNetParams
-import org.bitcoinj.core.Sha256Hash
-import org.bitcoinj.core.Address
 import org.bitcoinj.core.SegwitAddress
 import java.security.MessageDigest
 import kotlinx.coroutines.CoroutineScope
@@ -31,9 +28,9 @@ class DownloadFinishUseCase(
         coroutineScope.launch {
             Log.d("MusicDao", "DownloadFinishUseCase: $infoHash")
 
-            val metadataInfoHash = magnetToInfoHash(context.getString(R.string.bootstrap_cc_music_metadata));
+            val metadataInfoHash = magnetToInfoHash(context.getString(R.string.bootstrap_cc_music_metadata))
             if (infoHash == metadataInfoHash) {
-                val data = Paths.get("${cachePath.getPath()}/torrents/$infoHash");
+                val data = Paths.get("${cachePath.getPath()}/torrents/$infoHash")
 
                 val metadata = data.resolve("metadata.psv").toFile()
                 if (!metadata.exists()) {
@@ -43,7 +40,7 @@ class DownloadFinishUseCase(
 
                 val lines = metadata.readLines()
                 for (line in lines) {
-                    val songMetadata = line.split('|');
+                    val songMetadata = line.split('|')
                     database.dao.insert(
                         AlbumEntity(
                             id = "cc:pandacd-" + songMetadata[0],

@@ -173,7 +173,8 @@ class WalletManager(
         )
 
         Log.i("Coin", "Coin: starting the setup of kit.")
-        kit.setBlockingStartup(false)
+        kit
+            .setBlockingStartup(false)
             .startAsync()
             .awaitRunning()
 
@@ -190,10 +191,11 @@ class WalletManager(
             Log.i(
                 "Coin",
                 "Coin: Address from private key is: " +
-                    LegacyAddress.fromKey(
-                        params,
-                        key
-                    ).toString()
+                    LegacyAddress
+                        .fromKey(
+                            params,
+                            key
+                        ).toString()
             )
 
             kit.wallet().importKey(key)
@@ -203,8 +205,8 @@ class WalletManager(
         Log.i("Coin", "Coin: Imported Keys: ${kit.wallet().toString(true, false, false, null)}")
     }
 
-    private fun formatKey(privateKey: String): ECKey {
-        return if (privateKey.length == 51 || privateKey.length == 52) {
+    private fun formatKey(privateKey: String): ECKey =
+        if (privateKey.length == 51 || privateKey.length == 52) {
             val dumpedPrivateKey =
                 DumpedPrivateKey.fromBase58(params, privateKey)
             dumpedPrivateKey.key
@@ -212,42 +214,33 @@ class WalletManager(
             val bigIntegerPrivateKey = Base58.decodeToBigInteger(privateKey)
             ECKey.fromPrivate(bigIntegerPrivateKey)
         }
-    }
 
     /**
      * Returns our bitcoin address we use in all multi-sig contracts
      * we are part of.
      * @return hex representation of our address
      */
-    fun protocolAddress(): Address {
-        return kit.wallet().issuedReceiveAddresses[0]
-    }
+    fun protocolAddress(): Address = kit.wallet().issuedReceiveAddresses[0]
 
     /**
      * Returns our bitcoin public key we use in all multi-sig contracts
      * we are part of.
      * @return hex representation of our public key (this is not an address)
      */
-    fun protocolECKey(): ECKey {
-        return kit.wallet().issuedReceiveKeys[0]
-    }
+    fun protocolECKey(): ECKey = kit.wallet().issuedReceiveKeys[0]
 
     /**
      * Returns our bitcoin public key (in hex) we use in all multi-sig contracts
      * we are part of.
      * @return hex representation of our public key (this is not an address)
      */
-    fun networkPublicECKeyHex(): String {
-        return protocolECKey().publicKeyAsHex
-    }
+    fun networkPublicECKeyHex(): String = protocolECKey().publicKeyAsHex
 
     /**
      * Return the public point of the nonce key
      * @param - Pair, the private and public key of the nonce
      */
-    fun nonceECPointHex(nonce: Pair<ECKey, ECPoint>): String {
-        return nonce.second.getEncoded(true).toHex()
-    }
+    fun nonceECPointHex(nonce: Pair<ECKey, ECPoint>): String = nonce.second.getEncoded(true).toHex()
 
     /**
      * (1) When you are creating a multi-sig wallet for yourself alone
@@ -356,7 +349,8 @@ class WalletManager(
         Log.i(
             "Coin",
             "Joining DAO - serialized new tx without signatures: " +
-                newTransaction.bitcoinSerialize()
+                newTransaction
+                    .bitcoinSerialize()
                     .toHex()
         )
 
@@ -404,9 +398,10 @@ class WalletManager(
             MuSig.signMusig(
                 ECKey.fromPrivate(privChallenge1),
                 getNonceKey(walletId, context).first,
-                MuSig.aggregateSchnorrNonces(
-                    nonces
-                ).first,
+                MuSig
+                    .aggregateSchnorrNonces(
+                        nonces
+                    ).first,
                 aggPubKey,
                 sighashMuSig
             )
@@ -502,7 +497,8 @@ class WalletManager(
         Log.i(
             "Coin",
             "Transfer funds DAO - serialized new tx without signature: " +
-                newTransaction.serialize()
+                newTransaction
+                    .serialize()
                     .toHex()
         )
 
@@ -520,9 +516,10 @@ class WalletManager(
         return MuSig.signMusig(
             ECKey.fromPrivate(privChallenge),
             getNonceKey(walletId, context).first,
-            MuSig.aggregateSchnorrNonces(
-                nonces
-            ).first,
+            MuSig
+                .aggregateSchnorrNonces(
+                    nonces
+                ).first,
             aggPubKey,
             sighashMuSig
         )
@@ -570,7 +567,8 @@ class WalletManager(
         Log.i(
             "Coin",
             "Transfer funds DAO - final serialized new tx with signature: " +
-                newTransaction.serialize()
+                newTransaction
+                    .serialize()
                     .toHex()
         )
 
@@ -686,7 +684,10 @@ class WalletManager(
     ): Pair<ECKey, ECPoint> {
         val nonceKeyData = context.getSharedPreferences("nonce_keys", 0)!!
         val nonce = TaprootUtil.generateSchnorrNonce(ECKey().privKeyBytes)
-        val privateKey = nonce.first.privKey.toByteArray().toHex()
+        val privateKey =
+            nonce.first.privKey
+                .toByteArray()
+                .toHex()
         val editor = nonceKeyData.edit()
         Log.i("NONCE_KEY", "New key created for DAO: $swUniqueId")
         Log.i("NONCE_KEY", privateKey)
@@ -722,8 +723,10 @@ class WalletManager(
                     BitcoinNetworkOptions.REG_TEST -> RegTestParams.get()
                 }
             val keyChainGroup =
-                KeyChainGroup.builder(params, KeyChainGroupStructure.DEFAULT)
-                    .fromRandom(Script.ScriptType.P2PKH).build()
+                KeyChainGroup
+                    .builder(params, KeyChainGroupStructure.DEFAULT)
+                    .fromRandom(Script.ScriptType.P2PKH)
+                    .build()
             return deterministicSeedToSerializedDeterministicKey(keyChainGroup.activeKeyChain.seed!!)
         }
 

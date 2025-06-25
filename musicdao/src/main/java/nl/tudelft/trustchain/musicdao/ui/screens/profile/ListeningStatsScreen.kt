@@ -23,9 +23,10 @@ fun ListeningStatsScreen(viewModel: MusicStatsViewModel = hiltViewModel()) {
             LazyColumn {
                 items(stats.entries.toList()) { (artistId, minutes) ->
                     Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
                         elevation = 4.dp
                     ) {
                         Column(Modifier.padding(16.dp)) {

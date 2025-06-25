@@ -4,7 +4,10 @@ object InMemoryCache {
     private val cache = mutableMapOf<String, Any>()
 
     @Synchronized
-    fun put(key: String, value: Any) {
+    fun put(
+        key: String,
+        value: Any
+    ) {
         cache[key] = value
     }
 

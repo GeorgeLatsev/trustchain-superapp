@@ -13,66 +13,73 @@ import javax.inject.Singleton
 
 @Singleton
 class PayoutService
-@Inject
-constructor(
-    private val musicCommunity: MusicCommunity,
-    private val payoutManager: PayoutManager,
-    private val walletService: WalletService,
-    @Named("payoutWallet")
-    private val payoutWalletService: WalletService,
-) {
-    private val _isNodeFound = MutableStateFlow(false)
-    val isNodeFound: StateFlow<Boolean> = _isNodeFound
+    @Inject
+    constructor(
+        private val musicCommunity: MusicCommunity,
+        private val payoutManager: PayoutManager,
+        private val walletService: WalletService,
+        @Named("payoutWallet")
+        private val payoutWalletService: WalletService,
+    ) {
+        private val _isNodeFound = MutableStateFlow(false)
+        val isNodeFound: StateFlow<Boolean> = _isNodeFound
 
-    private val _nodeAddress = MutableStateFlow<String?>(null)
-    val nodeAddress: StateFlow<String?> = _nodeAddress
+        private val _nodeAddress = MutableStateFlow<String?>(null)
+        val nodeAddress: StateFlow<String?> = _nodeAddress
 
-    private var payoutWalletAddress: String? = null;
+        private var payoutWalletAddress: String? = null
 
-    init {
-        if (payoutManager.isEnabled()) {
-            Log.i("PayoutService", "Payout node is enabled, initializing")
+        init {
+            if (payoutManager.isEnabled()) {
+                Log.i("PayoutService", "Payout node is enabled, initializing")
 
-            _nodeAddress.value = musicCommunity.myPeer.address.toString()
-            _isNodeFound.value = true
-            payoutWalletAddress = payoutWalletService.protocolAddress().toString()
-        } else {
-            Log.i("PayoutService", "Initializing, setting up payout node peer listener")
-            musicCommunity.setOnPayoutNodePeerFound { peer, bitcoinAddress ->
-                Log.i("PayoutService", "Payout node peer found: $peer with wallet address: $bitcoinAddress")
+                _nodeAddress.value = musicCommunity.myPeer.address.toString()
+                _isNodeFound.value = true
+                payoutWalletAddress = payoutWalletService.protocolAddress().toString()
+            } else {
+                Log.i("PayoutService", "Initializing, setting up payout node peer listener")
+                musicCommunity.setOnPayoutNodePeerFound { peer, bitcoinAddress ->
+                    Log.i("PayoutService", "Payout node peer found: $peer with wallet address: $bitcoinAddress")
 
-                _nodeAddress.value = peer.address.toString()
-                _isNodeFound.value = true;
-                payoutWalletAddress = bitcoinAddress
+                    _nodeAddress.value = peer.address.toString()
+                    _isNodeFound.value = true
+                    payoutWalletAddress = bitcoinAddress
+                }
             }
         }
-    }
 
-    fun makeContribution(amount: Float, split: Map<String, Float>): String? {
-        if (isNodeFound.value.not() || payoutWalletAddress.isNullOrEmpty()) {
-            Log.w("PayoutService", "No payout node found, cannot make contribution")
-            return null
+        /**
+         * Handles the contribution process by sending coins to the payout wallet address and sending a contribution message afterwards.
+         */
+        fun makeContribution(
+            amount: Float,
+            split: Map<String, Float>
+        ): String? {
+            if (isNodeFound.value.not() || payoutWalletAddress.isNullOrEmpty()) {
+                Log.w("PayoutService", "No payout node found, cannot make contribution")
+                return null
+            }
+
+            Log.i("PayoutService", "Making contribution: $amount, split: $split")
+
+            val txid = walletService.sendCoins(payoutWalletAddress!!, amount.toString())
+            if (txid == null) {
+                Log.e("PayoutService", "Failed to send coins for contribution")
+                return null
+            }
+
+            val msg =
+                ContributionMessage(
+                    txid = txid,
+                    artistSplits = split,
+                )
+            msg.signature = walletService.signMessage(msg.getSignableString()).toString()
+
+            musicCommunity.sendPacketToPayoutNode(MusicCommunity.MessageId.CONTRIBUTION_MESSAGE, msg)
+            Log.i("PayoutService", "Contribution sent: $msg")
+
+            return txid
         }
 
-        Log.i("PayoutService", "Making contribution: $amount, split: $split")
-
-        val txid = walletService.sendCoins(payoutWalletAddress!!, amount.toString())
-        if (txid == null) {
-            Log.e("PayoutService", "Failed to send coins for contribution")
-            return null
-        }
-
-        val msg = ContributionMessage(
-            txid = txid,
-            artistSplits = split,
-        )
-        msg.signature = walletService.signMessage(msg.getSignableString()).toString()
-
-        musicCommunity.sendPacketToPayoutNode(MusicCommunity.MessageId.CONTRIBUTION_MESSAGE, msg)
-        Log.i("PayoutService", "Contribution sent: $msg")
-
-        return txid
+        internal fun getPayoutWalletAddress(): String? = payoutWalletAddress
     }
-
-    internal fun getPayoutWalletAddress(): String? = payoutWalletAddress
-}

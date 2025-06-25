@@ -105,7 +105,7 @@ class AlbumRepository
                 } catch (e: Exception) {
                     Log.e(
                         "AlbumRepository",
-                        "Failed to create block for ${it}: ${e.message}"
+                        "Failed to create block for $it: ${e.message}"
                     )
                 }
             }

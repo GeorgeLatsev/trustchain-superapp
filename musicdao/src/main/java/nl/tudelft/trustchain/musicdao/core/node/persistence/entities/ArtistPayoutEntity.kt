@@ -14,8 +14,9 @@ import androidx.room.Index
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index("payoutId")])
-data class ArtistPayoutEntity (
+    indices = [Index("payoutId")]
+)
+data class ArtistPayoutEntity(
     val artistAddress: String,
     val payoutId: String,
     val payoutAmount: Long,
