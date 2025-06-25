@@ -73,4 +73,6 @@ constructor(
 
         return txid
     }
+
+    internal fun getPayoutWalletAddress(): String? = payoutWalletAddress
 }
